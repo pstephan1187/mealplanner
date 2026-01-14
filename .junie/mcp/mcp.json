@@ -1,0 +1,20 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "/Users/patrickstephan/Library/Application Support/Herd/bin/php84",
+            "args": [
+                "/Users/patrickstephan/Development/Sites/mealplanner/artisan",
+                "boost:mcp"
+            ]
+        },
+        "herd": {
+            "command": "/Users/patrickstephan/Library/Application Support/Herd/bin/php84",
+            "args": [
+                "/Applications/Herd.app/Contents/Resources/herd-mcp.phar"
+            ],
+            "env": {
+                "SITE_PATH": "/Users/patrickstephan/Development/Sites/mealplanner"
+            }
+        }
+    }
+}
