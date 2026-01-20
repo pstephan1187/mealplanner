@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-vue-next';
+import {
+    BookOpen,
+    CalendarDays,
+    ClipboardList,
+    CookingPot,
+    Folder,
+    LayoutGrid,
+} from 'lucide-vue-next';
 
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -15,6 +22,9 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as mealPlansIndex } from '@/routes/meal-plans';
+import { index as recipesIndex } from '@/routes/recipes';
+import { index as shoppingListsIndex } from '@/routes/shopping-lists';
 import { type NavItem } from '@/types';
 
 import AppLogo from './AppLogo.vue';
@@ -24,6 +34,21 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Recipes',
+        href: recipesIndex(),
+        icon: CookingPot,
+    },
+    {
+        title: 'Meal Plans',
+        href: mealPlansIndex(),
+        icon: CalendarDays,
+    },
+    {
+        title: 'Shopping Lists',
+        href: shoppingListsIndex(),
+        icon: ClipboardList,
     },
 ];
 
