@@ -29,12 +29,14 @@ const props = withDefaults(
         allowCreate?: boolean;
         createLabel?: string;
         disabled?: boolean;
+        maxInitialOptions?: number;
     }>(),
     {
         placeholder: 'Select option...',
         allowCreate: false,
         createLabel: 'Create',
         disabled: false,
+        maxInitialOptions: 10,
     },
 );
 
@@ -55,7 +57,7 @@ const selectedOption = computed(() => {
 
 const filteredOptions = computed(() => {
     if (!searchTerm.value) {
-        return props.options;
+        return props.options.slice(0, props.maxInitialOptions);
     }
     const search = searchTerm.value.toLowerCase();
     return props.options.filter((opt) =>
@@ -117,6 +119,7 @@ function handleCreate() {
     <ComboboxRoot
         v-model:open="open"
         :ignore-filter="true"
+        :open-on-focus="true"
         :disabled="disabled"
     >
         <input
