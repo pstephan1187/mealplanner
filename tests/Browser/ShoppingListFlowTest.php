@@ -6,6 +6,7 @@ use App\Models\MealPlanRecipe;
 use App\Models\Recipe;
 use App\Models\ShoppingList;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Vite;
 
 beforeEach(function () {
@@ -18,7 +19,10 @@ dataset('shoppingListDevices', [
 ]);
 
 it('creates shopping lists from meal plans and updates items', function (string $device) {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'password' => Hash::make('password'),
+        'email_verified_at' => now(),
+    ]);
     $mealPlan = MealPlan::factory()->for($user)->create([
         'name' => 'Grocery Week',
         'start_date' => '2026-01-01',
@@ -54,15 +58,19 @@ it('creates shopping lists from meal plans and updates items', function (string 
             'servings' => 2,
         ]);
 
-    $this->actingAs($user);
-
-    $page = visit("/meal-plans/{$mealPlan->id}");
-
     $page = $device === 'mobile'
-        ? $page->on()->iPhone14Pro()
-        : $page->on()->iPadPro();
+        ? visit('/login')->on()->iPhone14Pro()
+        : visit('/login')->on()->iPadPro();
 
-    $page->click('Create list')
+    $page->fill('#email', $user->email)
+        ->fill('#password', 'password')
+        ->click('@login-button')
+        ->assertPathIs('/dashboard');
+
+    $url = "/meal-plans/{$mealPlan->id}";
+
+    $page->navigate($url)
+        ->click('Create list')
         ->wait(500)
         ->assertPathContains('/shopping-lists/')
         ->assertSee('Onion')

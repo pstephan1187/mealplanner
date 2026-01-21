@@ -4,6 +4,7 @@ use App\Models\MealPlan;
 use App\Models\MealPlanRecipe;
 use App\Models\Recipe;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Vite;
 
 beforeEach(function () {
@@ -16,7 +17,10 @@ dataset('mealPlanDevices', [
 ]);
 
 it('assigns and replaces meals in the week view', function (string $device) {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'password' => Hash::make('password'),
+        'email_verified_at' => now(),
+    ]);
     $mealPlan = MealPlan::factory()->for($user)->create([
         'name' => 'Week One',
         'start_date' => '2026-01-01',
@@ -33,15 +37,19 @@ it('assigns and replaces meals in the week view', function (string $device) {
         'servings' => 2,
     ]);
 
-    $this->actingAs($user);
-
-    $page = visit("/meal-plans/{$mealPlan->id}");
-
     $page = $device === 'mobile'
-        ? $page->on()->iPhone14Pro()
-        : $page->on()->iPadPro();
+        ? visit('/login')->on()->iPhone14Pro()
+        : visit('/login')->on()->iPadPro();
 
-    $page->click('@meal-slot-2026-01-01-breakfast')
+    $page->fill('#email', $user->email)
+        ->fill('#password', 'password')
+        ->click('@login-button')
+        ->assertPathIs('/dashboard');
+
+    $url = "/meal-plans/{$mealPlan->id}";
+
+    $page->navigate($url)
+        ->click('@meal-slot-2026-01-01-breakfast')
         ->select('recipe_id', (string) $recipeA->id)
         ->fill('servings', '2')
         ->press('Add meal')

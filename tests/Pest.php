@@ -19,6 +19,9 @@ pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Browser');
 
+pest()->browser()
+    ->timeout(5000);
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

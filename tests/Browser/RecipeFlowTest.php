@@ -2,6 +2,7 @@
 
 use App\Models\Ingredient;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Vite;
 
 beforeEach(function () {
@@ -14,25 +15,29 @@ dataset('recipeDevices', [
 ]);
 
 it('creates a recipe with a photo', function (string $device) {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'password' => Hash::make('password'),
+        'email_verified_at' => now(),
+    ]);
     Ingredient::factory()->count(2)->create();
 
-    $this->actingAs($user);
-
-    $page = visit('/recipes/create');
-
     $page = $device === 'mobile'
-        ? $page->on()->iPhone14Pro()
-        : $page->on()->iPadPro();
+        ? visit('/login')->on()->iPhone14Pro()
+        : visit('/login')->on()->iPadPro();
 
-    $page->fill('name', 'Crispy Tofu Bowl')
+    $page->fill('#email', $user->email)
+        ->fill('#password', 'password')
+        ->click('@login-button')
+        ->assertPathIs('/dashboard');
+
+    $page->navigate('/recipes/create')
+        ->fill('name', 'Crispy Tofu Bowl')
         ->fill('servings', '2')
         ->fill('flavor_profile', 'Savory')
         ->click('@meal-type-dinner')
         ->fill('instructions', 'Bake the tofu until crisp.')
         ->attach('photo', base_path('tests/Fixtures/recipe.jpg'))
         ->submit()
-        ->wait(500)
         ->assertPathContains('/recipes/')
         ->assertSee('Crispy Tofu Bowl')
         ->assertNoJavascriptErrors();
