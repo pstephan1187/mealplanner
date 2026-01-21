@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ArrowDown, ArrowUp, GripVertical } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -12,7 +12,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -130,7 +129,7 @@ watch(
     () => {
         syncManualItems();
     },
-    { immediate: true },
+    { immediate: true, deep: true },
 );
 
 watch(
@@ -159,13 +158,20 @@ const sortedItems = computed(() => {
 
     if (displayMode.value === 'alphabetical') {
         return items.sort((a, b) => {
+            // Purchased items go to the bottom
+            if (a.is_purchased !== b.is_purchased) {
+                return a.is_purchased ? 1 : -1;
+            }
             const nameA = a.ingredient?.name ?? '';
             const nameB = b.ingredient?.name ?? '';
             return nameA.localeCompare(nameB);
         });
     }
 
-    return manualItems.value;
+    // For manual mode, also move purchased items to the bottom
+    const unpurchased = manualItems.value.filter((item) => !item.is_purchased);
+    const purchased = manualItems.value.filter((item) => item.is_purchased);
+    return [...unpurchased, ...purchased];
 });
 
 const formatDate = (value?: string | null): string => {
@@ -288,12 +294,13 @@ const togglePurchased = (item: ShoppingListItem) => {
     );
 };
 
-const openEditModal = (item: ShoppingListItem) => {
+const openEditModal = async (item: ShoppingListItem) => {
     editingItem.value = item;
     editQuantity.value = String(item.quantity);
     editUnit.value = item.unit;
-    editIsPurchased.value = item.is_purchased;
+    editIsPurchased.value = Boolean(item.is_purchased);
     editErrors.value = {};
+    await nextTick();
     showEditModal.value = true;
 };
 
@@ -308,13 +315,14 @@ const saveItemEdit = () => {
         {
             quantity: editQuantity.value,
             unit: editUnit.value,
-            is_purchased: editIsPurchased.value,
+            is_purchased: Boolean(editIsPurchased.value),
         },
         {
             preserveScroll: true,
             onSuccess: () => {
                 showEditModal.value = false;
                 editingItem.value = null;
+                router.reload();
             },
             onError: (errors) => {
                 editErrors.value = errors as Record<string, string>;
@@ -325,6 +333,15 @@ const saveItemEdit = () => {
         },
     );
 };
+
+// Watch for prop changes to keep shoppingList reactive
+watch(
+    () => props.shoppingList,
+    () => {
+        syncManualItems();
+    },
+    { deep: true },
+);
 </script>
 
 <template>
@@ -397,12 +414,13 @@ const saveItemEdit = () => {
                         :data-test="`shopping-item-${item.id}`"
                         :class="{
                             'cursor-grab active:cursor-grabbing':
-                                displayMode === 'manual',
-                            'opacity-70':
+                                displayMode === 'manual' && !item.is_purchased,
+                            'opacity-50':
                                 draggingItemId !== null &&
                                 draggingItemId !== item.id,
+                            'opacity-50 bg-muted/30': item.is_purchased,
                         }"
-                        :draggable="displayMode === 'manual'"
+                        :draggable="displayMode === 'manual' && !item.is_purchased"
                         @dragstart="handleDragStart($event, item)"
                         @dragover="handleDragOver"
                         @drop="handleDrop($event, item)"
@@ -410,21 +428,26 @@ const saveItemEdit = () => {
                     >
                         <div class="flex items-start gap-3">
                             <button
-                                v-if="displayMode === 'manual'"
+                                v-if="displayMode === 'manual' && !item.is_purchased"
                                 type="button"
                                 class="mt-0.5 text-muted-foreground"
                                 aria-label="Drag to reorder"
                             >
                                 <GripVertical class="size-4" />
                             </button>
-                            <Checkbox
+                            <input
+                                type="checkbox"
                                 :id="`item-${item.id}`"
-                                :default-value="item.is_purchased"
-                                @click="togglePurchased(item)"
+                                :checked="item.is_purchased"
+                                class="size-4 rounded border-gray-300 text-primary focus:ring-primary"
                                 :data-test="`shopping-item-toggle-${item.id}`"
+                                @change="togglePurchased(item)"
                             />
                             <div>
-                                <p class="font-medium">
+                                <p
+                                    class="font-medium"
+                                    :class="{ 'line-through': item.is_purchased }"
+                                >
                                     {{ item.ingredient?.name ?? 'Ingredient' }}
                                 </p>
                                 <p class="text-sm text-muted-foreground">
@@ -442,7 +465,7 @@ const saveItemEdit = () => {
                         </div>
                         <div class="flex items-center gap-2">
                             <div
-                                v-if="displayMode === 'manual'"
+                                v-if="displayMode === 'manual' && !item.is_purchased"
                                 class="flex items-center gap-1"
                             >
                                 <Button
@@ -544,9 +567,12 @@ const saveItemEdit = () => {
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <Checkbox
+                        <input
+                            type="checkbox"
                             id="edit-is-purchased"
-                            v-model:checked="editIsPurchased"
+                            :checked="editIsPurchased"
+                            class="size-4 rounded border-gray-300"
+                            @change="editIsPurchased = ($event.target as HTMLInputElement).checked"
                         />
                         <Label for="edit-is-purchased">Purchased</Label>
                     </div>
