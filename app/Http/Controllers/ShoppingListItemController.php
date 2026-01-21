@@ -105,7 +105,7 @@ class ShoppingListItemController extends Controller
         $shoppingListItem->fill(Arr::except($data, ['shopping_list_id']));
         $shoppingListItem->save();
 
-        return redirect()->route('shopping-list-items.show', $shoppingListItem);
+        return back();
     }
 
     public function destroy(Request $request, ShoppingListItem $shoppingListItem): RedirectResponse

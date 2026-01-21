@@ -55,7 +55,7 @@ it('updates shopping list items', function () {
         'sort_order' => 2,
     ]);
 
-    $response->assertRedirect(route('shopping-list-items.show', $item));
+    $response->assertRedirect();
 
     $item->refresh();
 

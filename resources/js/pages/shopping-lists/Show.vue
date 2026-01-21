@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, GripVertical } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 import Heading from '@/components/Heading.vue';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -12,11 +13,21 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
 import {
     create as createShoppingListItem,
-    edit as editShoppingListItem,
     update as updateShoppingListItem,
 } from '@/routes/shopping-list-items';
 import {
@@ -79,6 +90,15 @@ const displayMode = ref<'manual' | 'alphabetical'>(
 );
 const manualItems = ref<ShoppingListItem[]>([]);
 const draggingItemId = ref<number | null>(null);
+
+// Edit modal state
+const showEditModal = ref(false);
+const editingItem = ref<ShoppingListItem | null>(null);
+const editQuantity = ref('');
+const editUnit = ref('');
+const editIsPurchased = ref(false);
+const editErrors = ref<Record<string, string>>({});
+const editProcessing = ref(false);
 
 const normalizeOrder = (items: ShoppingListItem[]): ShoppingListItem[] =>
     items.map((item, index) => ({
@@ -267,6 +287,44 @@ const togglePurchased = (item: ShoppingListItem) => {
         },
     );
 };
+
+const openEditModal = (item: ShoppingListItem) => {
+    editingItem.value = item;
+    editQuantity.value = String(item.quantity);
+    editUnit.value = item.unit;
+    editIsPurchased.value = item.is_purchased;
+    editErrors.value = {};
+    showEditModal.value = true;
+};
+
+const saveItemEdit = () => {
+    if (!editingItem.value) return;
+
+    editProcessing.value = true;
+    editErrors.value = {};
+
+    router.patch(
+        updateShoppingListItem(editingItem.value.id),
+        {
+            quantity: editQuantity.value,
+            unit: editUnit.value,
+            is_purchased: editIsPurchased.value,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                showEditModal.value = false;
+                editingItem.value = null;
+            },
+            onError: (errors) => {
+                editErrors.value = errors as Record<string, string>;
+            },
+            onFinish: () => {
+                editProcessing.value = false;
+            },
+        },
+    );
+};
 </script>
 
 <template>
@@ -408,10 +466,12 @@ const togglePurchased = (item: ShoppingListItem) => {
                                     <ArrowDown class="size-4" />
                                 </Button>
                             </div>
-                            <Button variant="ghost" size="sm" as-child>
-                                <Link :href="editShoppingListItem(item.id)">
-                                    Edit
-                                </Link>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                @click="openEditModal(item)"
+                            >
+                                Edit
                             </Button>
                         </div>
                     </div>
@@ -447,5 +507,63 @@ const togglePurchased = (item: ShoppingListItem) => {
                 </CardContent>
             </Card>
         </div>
+
+        <!-- Edit Item Modal -->
+        <Dialog v-model:open="showEditModal">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Edit item</DialogTitle>
+                    <DialogDescription>
+                        {{ editingItem?.ingredient?.name ?? 'Item' }}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4 py-4">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="grid gap-2">
+                            <Label for="edit-quantity">Quantity</Label>
+                            <Input
+                                id="edit-quantity"
+                                v-model="editQuantity"
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                            />
+                            <InputError :message="editErrors.quantity" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="edit-unit">Unit</Label>
+                            <Input
+                                id="edit-unit"
+                                v-model="editUnit"
+                                placeholder="cups, oz, etc."
+                            />
+                            <InputError :message="editErrors.unit" />
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <Checkbox
+                            id="edit-is-purchased"
+                            v-model:checked="editIsPurchased"
+                        />
+                        <Label for="edit-is-purchased">Purchased</Label>
+                    </div>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <DialogClose as-child>
+                        <Button variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    <Button
+                        @click="saveItemEdit"
+                        :disabled="editProcessing"
+                    >
+                        Save changes
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>
