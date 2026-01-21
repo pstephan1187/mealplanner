@@ -6,6 +6,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -29,6 +30,17 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->configureDefaults();
+
+        View::composer('app', function ($view) {
+            $user = auth()->user();
+            $theme = $user?->theme ?? 'default';
+            $appearance = request()->cookie('appearance', 'system');
+
+            $view->with([
+                'theme' => $theme,
+                'appearance' => $appearance,
+            ]);
+        });
     }
 
     protected function configureDefaults(): void
