@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\GroceryStore;
+use App\Models\GroceryStoreSection;
 use App\Models\Ingredient;
 use App\Models\MealPlan;
 use App\Models\ShoppingList;
@@ -96,4 +98,68 @@ it('updates shopping list item order', function () {
 
     expect($first->refresh()->sort_order)->toBe(2);
     expect($second->refresh()->sort_order)->toBe(1);
+});
+
+it('updates shopping list item store and section override', function () {
+    $user = User::factory()->create();
+    $mealPlan = MealPlan::factory()->for($user)->create();
+    $shoppingList = ShoppingList::factory()->for($user)->for($mealPlan)->create();
+
+    $store = GroceryStore::factory()->for($user)->create();
+    $section = GroceryStoreSection::factory()->for($store)->create();
+
+    $ingredient = Ingredient::factory()->for($user)->create();
+    $item = ShoppingListItem::factory()
+        ->for($shoppingList)
+        ->for($ingredient)
+        ->create();
+
+    expect($item->grocery_store_id)->toBeNull();
+    expect($item->grocery_store_section_id)->toBeNull();
+
+    $response = $this->actingAs($user)->patch(
+        route('shopping-list-items.update', $item),
+        [
+            'grocery_store_id' => $store->id,
+            'grocery_store_section_id' => $section->id,
+        ]
+    );
+
+    $response->assertRedirect();
+
+    $item->refresh();
+    expect($item->grocery_store_id)->toBe($store->id);
+    expect($item->grocery_store_section_id)->toBe($section->id);
+});
+
+it('clears shopping list item store and section override', function () {
+    $user = User::factory()->create();
+    $mealPlan = MealPlan::factory()->for($user)->create();
+    $shoppingList = ShoppingList::factory()->for($user)->for($mealPlan)->create();
+
+    $store = GroceryStore::factory()->for($user)->create();
+    $section = GroceryStoreSection::factory()->for($store)->create();
+
+    $ingredient = Ingredient::factory()->for($user)->create();
+    $item = ShoppingListItem::factory()
+        ->for($shoppingList)
+        ->for($ingredient)
+        ->create([
+            'grocery_store_id' => $store->id,
+            'grocery_store_section_id' => $section->id,
+        ]);
+
+    $response = $this->actingAs($user)->patch(
+        route('shopping-list-items.update', $item),
+        [
+            'grocery_store_id' => null,
+            'grocery_store_section_id' => null,
+        ]
+    );
+
+    $response->assertRedirect();
+
+    $item->refresh();
+    expect($item->grocery_store_id)->toBeNull();
+    expect($item->grocery_store_section_id)->toBeNull();
 });

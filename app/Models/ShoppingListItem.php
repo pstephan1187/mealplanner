@@ -17,6 +17,8 @@ class ShoppingListItem extends Model
     protected $fillable = [
         'shopping_list_id',
         'ingredient_id',
+        'grocery_store_id',
+        'grocery_store_section_id',
         'quantity',
         'unit',
         'is_purchased',
@@ -43,5 +45,15 @@ class ShoppingListItem extends Model
     public function ingredient(): BelongsTo
     {
         return $this->belongsTo(Ingredient::class);
+    }
+
+    public function groceryStore(): BelongsTo
+    {
+        return $this->belongsTo(GroceryStore::class);
+    }
+
+    public function groceryStoreSection(): BelongsTo
+    {
+        return $this->belongsTo(GroceryStoreSection::class);
     }
 }

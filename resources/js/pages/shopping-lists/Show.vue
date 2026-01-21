@@ -65,7 +65,11 @@ interface ShoppingListItem {
     unit: string;
     is_purchased: boolean;
     sort_order?: number | null;
+    grocery_store_id?: number | null;
+    grocery_store_section_id?: number | null;
     ingredient?: Ingredient | null;
+    effective_grocery_store?: GroceryStore | null;
+    effective_grocery_store_section?: GroceryStoreSection | null;
 }
 
 interface MealPlan {
@@ -171,12 +175,14 @@ watch(displayMode, (value) => {
 
 interface SectionGroup {
     sectionName: string | null;
+    sectionId: number | null;
     sortOrder: number;
     items: ShoppingListItem[];
 }
 
 interface StoreGroup {
     storeName: string;
+    storeId: number | null;
     isUnassigned: boolean;
     sections: SectionGroup[];
 }
@@ -203,8 +209,8 @@ const sortedItems = computed(() => {
                 return a.is_purchased ? 1 : -1;
             }
 
-            const storeA = a.ingredient?.grocery_store;
-            const storeB = b.ingredient?.grocery_store;
+            const storeA = a.effective_grocery_store;
+            const storeB = b.effective_grocery_store;
 
             // Items without a store come first
             if (!storeA && storeB) return -1;
@@ -216,8 +222,8 @@ const sortedItems = computed(() => {
                 if (storeCompare !== 0) return storeCompare;
             }
 
-            const sectionA = a.ingredient?.grocery_store_section;
-            const sectionB = b.ingredient?.grocery_store_section;
+            const sectionA = a.effective_grocery_store_section;
+            const sectionB = b.effective_grocery_store_section;
 
             // Items without a section come first within the same store
             if (!sectionA && sectionB) return -1;
@@ -248,18 +254,21 @@ const groupedByStore = computed((): StoreGroup[] => {
     const stores: Map<string, StoreGroup> = new Map();
 
     for (const item of sortedItems.value) {
-        const store = item.ingredient?.grocery_store;
-        const section = item.ingredient?.grocery_store_section;
+        const store = item.effective_grocery_store;
+        const section = item.effective_grocery_store_section;
 
         const storeName = store?.name ?? 'Not assigned';
+        const storeId = store?.id ?? null;
         const isUnassigned = !store;
         const sectionName = section?.name ?? null;
+        const sectionId = section?.id ?? null;
         const sortOrder = section?.sort_order ?? 0;
 
         // Get or create store group
         if (!stores.has(storeName)) {
             stores.set(storeName, {
                 storeName,
+                storeId,
                 isUnassigned,
                 sections: [],
             });
@@ -275,6 +284,7 @@ const groupedByStore = computed((): StoreGroup[] => {
         if (!sectionGroup) {
             sectionGroup = {
                 sectionName,
+                sectionId,
                 sortOrder,
                 items: [],
             };
@@ -409,6 +419,59 @@ const handleDrop = (event: DragEvent, item: ShoppingListItem) => {
 
 const handleDragEnd = () => {
     draggingItemId.value = null;
+    storeDraggingItemId.value = null;
+};
+
+// Store view drag and drop
+const storeDraggingItemId = ref<number | null>(null);
+
+const handleStoreDragStart = (event: DragEvent, item: ShoppingListItem) => {
+    if (displayMode.value !== 'store' || item.is_purchased) {
+        return;
+    }
+
+    storeDraggingItemId.value = item.id;
+    event.dataTransfer?.setData('text/plain', item.id.toString());
+    event.dataTransfer?.setDragImage(event.currentTarget as Element, 20, 20);
+};
+
+const handleStoreDragOver = (event: DragEvent) => {
+    if (displayMode.value !== 'store') {
+        return;
+    }
+
+    event.preventDefault();
+};
+
+const handleStoreDropOnSection = (
+    event: DragEvent,
+    storeId: number | null,
+    sectionId: number | null
+) => {
+    if (displayMode.value !== 'store') {
+        return;
+    }
+
+    event.preventDefault();
+
+    if (storeDraggingItemId.value === null) {
+        return;
+    }
+
+    const itemId = storeDraggingItemId.value;
+    storeDraggingItemId.value = null;
+
+    // Update the item's store and section
+    router.patch(
+        updateShoppingListItem(itemId),
+        {
+            grocery_store_id: storeId,
+            grocery_store_section_id: sectionId,
+        },
+        {
+            preserveScroll: true,
+        },
+    );
 };
 
 const togglePurchased = (item: ShoppingListItem) => {
@@ -554,7 +617,12 @@ watch(
                             <div
                                 v-for="section in storeGroup.sections"
                                 :key="`${storeGroup.storeName}-${section.sectionName}`"
-                                class="space-y-2"
+                                class="space-y-2 rounded-lg p-2 transition-colors"
+                                :class="{
+                                    'bg-primary/10 ring-2 ring-primary/30': storeDraggingItemId !== null,
+                                }"
+                                @dragover="handleStoreDragOver"
+                                @drop="handleStoreDropOnSection($event, storeGroup.storeId, section.sectionId)"
                             >
                                 <!-- Section header -->
                                 <h4
@@ -568,13 +636,26 @@ watch(
                                 <div
                                     v-for="item in section.items"
                                     :key="item.id"
-                                    class="flex flex-col gap-2 rounded-lg border border-border/70 p-4 md:flex-row md:items-center md:justify-between"
+                                    class="flex flex-col gap-2 rounded-lg border border-border/70 bg-background p-4 md:flex-row md:items-center md:justify-between"
                                     :data-test="`shopping-item-${item.id}`"
                                     :class="{
+                                        'cursor-grab active:cursor-grabbing': !item.is_purchased,
+                                        'opacity-50': storeDraggingItemId !== null && storeDraggingItemId !== item.id,
                                         'opacity-50 bg-muted/30': item.is_purchased,
                                     }"
+                                    :draggable="!item.is_purchased"
+                                    @dragstart="handleStoreDragStart($event, item)"
+                                    @dragend="handleDragEnd"
                                 >
                                     <div class="flex items-start gap-3">
+                                        <button
+                                            v-if="!item.is_purchased"
+                                            type="button"
+                                            class="mt-0.5 text-muted-foreground"
+                                            aria-label="Drag to move to another store or section"
+                                        >
+                                            <GripVertical class="size-4" />
+                                        </button>
                                         <input
                                             type="checkbox"
                                             :id="`item-${item.id}`"
