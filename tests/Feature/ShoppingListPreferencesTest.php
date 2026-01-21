@@ -27,6 +27,24 @@ it('updates shopping list display mode', function () {
     expect($shoppingList->refresh()->display_mode)->toBe('alphabetical');
 });
 
+it('updates shopping list display mode to store', function () {
+    $user = User::factory()->create();
+    $mealPlan = MealPlan::factory()->for($user)->create();
+    $shoppingList = ShoppingList::factory()
+        ->for($user)
+        ->for($mealPlan)
+        ->create(['display_mode' => 'manual']);
+
+    $response = $this->actingAs($user)->patch(
+        route('shopping-lists.update', $shoppingList),
+        ['display_mode' => 'store']
+    );
+
+    $response->assertRedirect(route('shopping-lists.show', $shoppingList));
+
+    expect($shoppingList->refresh()->display_mode)->toBe('store');
+});
+
 it('toggles shopping list items as purchased', function () {
     $user = User::factory()->create();
     $mealPlan = MealPlan::factory()->for($user)->create();

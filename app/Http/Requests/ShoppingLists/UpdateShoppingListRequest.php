@@ -22,7 +22,7 @@ class UpdateShoppingListRequest extends FormRequest
                 'exists:meal_plans,id',
                 Rule::unique('shopping_lists', 'meal_plan_id')->ignore($this->route('shopping_list')),
             ],
-            'display_mode' => ['sometimes', 'string', Rule::in(['manual', 'alphabetical'])],
+            'display_mode' => ['sometimes', 'string', Rule::in(['manual', 'alphabetical', 'store'])],
         ];
     }
 }

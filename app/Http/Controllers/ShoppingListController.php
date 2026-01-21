@@ -62,7 +62,7 @@ class ShoppingListController extends Controller
         $this->ensureShoppingListOwner($request, $shoppingList);
 
         return Inertia::render('shopping-lists/Show', [
-            'shoppingList' => ShoppingListResource::make($shoppingList->load('items.ingredient', 'mealPlan')),
+            'shoppingList' => ShoppingListResource::make($shoppingList->load('items.ingredient.groceryStore', 'items.ingredient.groceryStoreSection', 'mealPlan')),
         ]);
     }
 

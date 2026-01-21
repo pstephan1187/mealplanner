@@ -38,9 +38,25 @@ import {
 import { order as orderShoppingListItems } from '@/routes/shopping-lists/items';
 import { type BreadcrumbItem } from '@/types';
 
+interface GroceryStoreSection {
+    id: number;
+    grocery_store_id: number;
+    name: string;
+    sort_order: number;
+}
+
+interface GroceryStore {
+    id: number;
+    name: string;
+}
+
 interface Ingredient {
     id: number;
     name: string;
+    grocery_store_id?: number | null;
+    grocery_store_section_id?: number | null;
+    grocery_store?: GroceryStore | null;
+    grocery_store_section?: GroceryStoreSection | null;
 }
 
 interface ShoppingListItem {
@@ -62,7 +78,7 @@ interface MealPlan {
 interface ShoppingList {
     id: number;
     meal_plan_id: number;
-    display_mode?: 'manual' | 'alphabetical';
+    display_mode?: 'manual' | 'alphabetical' | 'store';
     meal_plan?: MealPlan | null;
     items?: ShoppingListItem[];
 }
@@ -84,7 +100,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const displayMode = ref<'manual' | 'alphabetical'>(
+const displayMode = ref<'manual' | 'alphabetical' | 'store'>(
     shoppingList.value.display_mode ?? 'manual',
 );
 const manualItems = ref<ShoppingListItem[]>([]);
@@ -153,6 +169,18 @@ watch(displayMode, (value) => {
     );
 });
 
+interface SectionGroup {
+    sectionName: string | null;
+    sortOrder: number;
+    items: ShoppingListItem[];
+}
+
+interface StoreGroup {
+    storeName: string;
+    isUnassigned: boolean;
+    sections: SectionGroup[];
+}
+
 const sortedItems = computed(() => {
     const items = [...(shoppingList.value.items ?? [])];
 
@@ -168,10 +196,112 @@ const sortedItems = computed(() => {
         });
     }
 
+    if (displayMode.value === 'store') {
+        return items.sort((a, b) => {
+            // Purchased items go to the bottom
+            if (a.is_purchased !== b.is_purchased) {
+                return a.is_purchased ? 1 : -1;
+            }
+
+            const storeA = a.ingredient?.grocery_store;
+            const storeB = b.ingredient?.grocery_store;
+
+            // Items without a store come first
+            if (!storeA && storeB) return -1;
+            if (storeA && !storeB) return 1;
+
+            // Both have stores - compare store names
+            if (storeA && storeB) {
+                const storeCompare = storeA.name.localeCompare(storeB.name);
+                if (storeCompare !== 0) return storeCompare;
+            }
+
+            const sectionA = a.ingredient?.grocery_store_section;
+            const sectionB = b.ingredient?.grocery_store_section;
+
+            // Items without a section come first within the same store
+            if (!sectionA && sectionB) return -1;
+            if (sectionA && !sectionB) return 1;
+
+            // Both have sections - compare by sort order
+            if (sectionA && sectionB) {
+                const sectionCompare = sectionA.sort_order - sectionB.sort_order;
+                if (sectionCompare !== 0) return sectionCompare;
+            }
+
+            // Finally, sort alphabetically by ingredient name
+            const nameA = a.ingredient?.name ?? '';
+            const nameB = b.ingredient?.name ?? '';
+            return nameA.localeCompare(nameB);
+        });
+    }
+
     // For manual mode, also move purchased items to the bottom
     const unpurchased = manualItems.value.filter((item) => !item.is_purchased);
     const purchased = manualItems.value.filter((item) => item.is_purchased);
     return [...unpurchased, ...purchased];
+});
+
+const groupedByStore = computed((): StoreGroup[] => {
+    if (displayMode.value !== 'store') return [];
+
+    const stores: Map<string, StoreGroup> = new Map();
+
+    for (const item of sortedItems.value) {
+        const store = item.ingredient?.grocery_store;
+        const section = item.ingredient?.grocery_store_section;
+
+        const storeName = store?.name ?? 'Not assigned';
+        const isUnassigned = !store;
+        const sectionName = section?.name ?? null;
+        const sortOrder = section?.sort_order ?? 0;
+
+        // Get or create store group
+        if (!stores.has(storeName)) {
+            stores.set(storeName, {
+                storeName,
+                isUnassigned,
+                sections: [],
+            });
+        }
+
+        const storeGroup = stores.get(storeName)!;
+
+        // Find or create section within store
+        let sectionGroup = storeGroup.sections.find(
+            (s) => s.sectionName === sectionName
+        );
+
+        if (!sectionGroup) {
+            sectionGroup = {
+                sectionName,
+                sortOrder,
+                items: [],
+            };
+            storeGroup.sections.push(sectionGroup);
+        }
+
+        sectionGroup.items.push(item);
+    }
+
+    // Sort stores: "Not assigned" first, then alphabetically
+    const sortedStores = Array.from(stores.values()).sort((a, b) => {
+        if (a.isUnassigned && !b.isUnassigned) return -1;
+        if (!a.isUnassigned && b.isUnassigned) return 1;
+        return a.storeName.localeCompare(b.storeName);
+    });
+
+    // Sort sections within each store by sort order
+    for (const store of sortedStores) {
+        store.sections.sort((a, b) => {
+            // Null section (no section assigned) comes first
+            if (a.sectionName === null && b.sectionName !== null) return -1;
+            if (a.sectionName !== null && b.sectionName === null) return 1;
+            return a.sortOrder - b.sortOrder;
+        });
+    }
+
+    return sortedStores;
 });
 
 const formatDate = (value?: string | null): string => {
@@ -390,6 +520,7 @@ watch(
                     >
                         <option value="manual">Manual order</option>
                         <option value="alphabetical">Alphabetical</option>
+                        <option value="store">By store</option>
                     </select>
                 </CardHeader>
             </Card>
@@ -407,97 +538,171 @@ watch(
                         meal plan.
                     </div>
 
-                    <div
-                        v-for="item in sortedItems"
-                        :key="item.id"
-                        class="flex flex-col gap-2 rounded-lg border border-border/70 p-4 md:flex-row md:items-center md:justify-between"
-                        :data-test="`shopping-item-${item.id}`"
-                        :class="{
-                            'cursor-grab active:cursor-grabbing':
-                                displayMode === 'manual' && !item.is_purchased,
-                            'opacity-50':
-                                draggingItemId !== null &&
-                                draggingItemId !== item.id,
-                            'opacity-50 bg-muted/30': item.is_purchased,
-                        }"
-                        :draggable="displayMode === 'manual' && !item.is_purchased"
-                        @dragstart="handleDragStart($event, item)"
-                        @dragover="handleDragOver"
-                        @drop="handleDrop($event, item)"
-                        @dragend="handleDragEnd"
-                    >
-                        <div class="flex items-start gap-3">
-                            <button
-                                v-if="displayMode === 'manual' && !item.is_purchased"
-                                type="button"
-                                class="mt-0.5 text-muted-foreground"
-                                aria-label="Drag to reorder"
-                            >
-                                <GripVertical class="size-4" />
-                            </button>
-                            <input
-                                type="checkbox"
-                                :id="`item-${item.id}`"
-                                :checked="item.is_purchased"
-                                class="size-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                :data-test="`shopping-item-toggle-${item.id}`"
-                                @change="togglePurchased(item)"
-                            />
-                            <div>
-                                <p
-                                    class="font-medium"
-                                    :class="{ 'line-through': item.is_purchased }"
-                                >
-                                    {{ item.ingredient?.name ?? 'Ingredient' }}
-                                </p>
-                                <p class="text-sm text-muted-foreground">
-                                    {{ item.quantity }} {{ item.unit }}
-                                    <span
-                                        v-if="
-                                            displayMode === 'manual' &&
-                                            item.sort_order
-                                        "
-                                    >
-                                        - Order {{ item.sort_order }}
-                                    </span>
-                                </p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
+                    <!-- Store grouped view -->
+                    <template v-else-if="displayMode === 'store'">
+                        <div
+                            v-for="storeGroup in groupedByStore"
+                            :key="storeGroup.storeName"
+                            class="space-y-4"
+                        >
+                            <!-- Store header -->
+                            <h3 class="border-b-2 border-primary pb-2 text-lg font-semibold text-foreground">
+                                {{ storeGroup.storeName }}
+                            </h3>
+
+                            <!-- Sections within store -->
                             <div
-                                v-if="displayMode === 'manual' && !item.is_purchased"
-                                class="flex items-center gap-1"
+                                v-for="section in storeGroup.sections"
+                                :key="`${storeGroup.storeName}-${section.sectionName}`"
+                                class="space-y-2"
                             >
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label="Move item up"
-                                    :data-test="`shopping-item-up-${item.id}`"
-                                    @click="moveItem(item.id, -1)"
+                                <!-- Section header -->
+                                <h4
+                                    v-if="section.sectionName"
+                                    class="text-sm font-medium text-muted-foreground"
                                 >
-                                    <ArrowUp class="size-4" />
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label="Move item down"
-                                    :data-test="`shopping-item-down-${item.id}`"
-                                    @click="moveItem(item.id, 1)"
+                                    {{ section.sectionName }}
+                                </h4>
+
+                                <!-- Items in section -->
+                                <div
+                                    v-for="item in section.items"
+                                    :key="item.id"
+                                    class="flex flex-col gap-2 rounded-lg border border-border/70 p-4 md:flex-row md:items-center md:justify-between"
+                                    :data-test="`shopping-item-${item.id}`"
+                                    :class="{
+                                        'opacity-50 bg-muted/30': item.is_purchased,
+                                    }"
                                 >
-                                    <ArrowDown class="size-4" />
+                                    <div class="flex items-start gap-3">
+                                        <input
+                                            type="checkbox"
+                                            :id="`item-${item.id}`"
+                                            :checked="item.is_purchased"
+                                            class="size-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                            :data-test="`shopping-item-toggle-${item.id}`"
+                                            @change="togglePurchased(item)"
+                                        />
+                                        <div>
+                                            <p
+                                                class="font-medium"
+                                                :class="{ 'line-through': item.is_purchased }"
+                                            >
+                                                {{ item.ingredient?.name ?? 'Ingredient' }}
+                                            </p>
+                                            <p class="text-sm text-muted-foreground">
+                                                {{ item.quantity }} {{ item.unit }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            @click="openEditModal(item)"
+                                        >
+                                            Edit
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Manual and alphabetical view -->
+                    <template v-else>
+                        <div
+                            v-for="item in sortedItems"
+                            :key="item.id"
+                            class="flex flex-col gap-2 rounded-lg border border-border/70 p-4 md:flex-row md:items-center md:justify-between"
+                            :data-test="`shopping-item-${item.id}`"
+                            :class="{
+                                'cursor-grab active:cursor-grabbing':
+                                    displayMode === 'manual' && !item.is_purchased,
+                                'opacity-50':
+                                    draggingItemId !== null &&
+                                    draggingItemId !== item.id,
+                                'opacity-50 bg-muted/30': item.is_purchased,
+                            }"
+                            :draggable="displayMode === 'manual' && !item.is_purchased"
+                            @dragstart="handleDragStart($event, item)"
+                            @dragover="handleDragOver"
+                            @drop="handleDrop($event, item)"
+                            @dragend="handleDragEnd"
+                        >
+                            <div class="flex items-start gap-3">
+                                <button
+                                    v-if="displayMode === 'manual' && !item.is_purchased"
+                                    type="button"
+                                    class="mt-0.5 text-muted-foreground"
+                                    aria-label="Drag to reorder"
+                                >
+                                    <GripVertical class="size-4" />
+                                </button>
+                                <input
+                                    type="checkbox"
+                                    :id="`item-${item.id}`"
+                                    :checked="item.is_purchased"
+                                    class="size-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    :data-test="`shopping-item-toggle-${item.id}`"
+                                    @change="togglePurchased(item)"
+                                />
+                                <div>
+                                    <p
+                                        class="font-medium"
+                                        :class="{ 'line-through': item.is_purchased }"
+                                    >
+                                        {{ item.ingredient?.name ?? 'Ingredient' }}
+                                    </p>
+                                    <p class="text-sm text-muted-foreground">
+                                        {{ item.quantity }} {{ item.unit }}
+                                        <span
+                                            v-if="
+                                                displayMode === 'manual' &&
+                                                item.sort_order
+                                            "
+                                        >
+                                            - Order {{ item.sort_order }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div
+                                    v-if="displayMode === 'manual' && !item.is_purchased"
+                                    class="flex items-center gap-1"
+                                >
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label="Move item up"
+                                        :data-test="`shopping-item-up-${item.id}`"
+                                        @click="moveItem(item.id, -1)"
+                                    >
+                                        <ArrowUp class="size-4" />
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label="Move item down"
+                                        :data-test="`shopping-item-down-${item.id}`"
+                                        @click="moveItem(item.id, 1)"
+                                    >
+                                        <ArrowDown class="size-4" />
+                                    </Button>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    @click="openEditModal(item)"
+                                >
+                                    Edit
                                 </Button>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                @click="openEditModal(item)"
-                            >
-                                Edit
-                            </Button>
                         </div>
-                    </div>
+                    </template>
                 </CardContent>
             </Card>
 
