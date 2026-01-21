@@ -78,6 +78,19 @@ const displayValue = computed(() => {
     return '';
 });
 
+// The input value: show searchTerm when open, show selected option name when closed
+const inputValue = computed({
+    get() {
+        if (open.value) {
+            return searchTerm.value;
+        }
+        return displayValue.value;
+    },
+    set(value: string) {
+        searchTerm.value = value;
+    },
+});
+
 watch(open, (isOpen) => {
     if (!isOpen) {
         searchTerm.value = '';
@@ -124,10 +137,9 @@ function handleCreate() {
             "
         >
             <ComboboxInput
+                v-model="inputValue"
                 :placeholder="selectedOption ? '' : placeholder"
-                :display-value="() => (open ? searchTerm : displayValue)"
                 class="h-full flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-                @update:model-value="searchTerm = $event"
             />
             <ChevronsUpDown class="size-4 shrink-0 text-muted-foreground" />
         </ComboboxAnchor>
