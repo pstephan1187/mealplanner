@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ShoppingLists\StoreShoppingListRequest;
 use App\Http\Requests\ShoppingLists\UpdateShoppingListItemOrderRequest;
 use App\Http\Requests\ShoppingLists\UpdateShoppingListRequest;
+use App\Http\Resources\GroceryStoreResource;
 use App\Http\Resources\MealPlanResource;
 use App\Http\Resources\ShoppingListResource;
+use App\Models\GroceryStore;
 use App\Models\MealPlan;
 use App\Models\ShoppingList;
 use Illuminate\Http\RedirectResponse;
@@ -61,6 +63,12 @@ class ShoppingListController extends Controller
     {
         $this->ensureShoppingListOwner($request, $shoppingList);
 
+        $groceryStores = GroceryStore::query()
+            ->where('user_id', $request->user()->id)
+            ->with('sections')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('shopping-lists/Show', [
             'shoppingList' => ShoppingListResource::make($shoppingList->load([
                 'items.ingredient.groceryStore',
@@ -69,6 +77,7 @@ class ShoppingListController extends Controller
                 'items.groceryStoreSection',
                 'mealPlan',
             ])),
+            'groceryStores' => GroceryStoreResource::collection($groceryStores),
         ]);
     }
 

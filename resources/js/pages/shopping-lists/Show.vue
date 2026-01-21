@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowDown, ArrowUp, GripVertical } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp, GripVertical, Pencil } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
 import {
     Card,
     CardContent,
@@ -25,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
+import { update as updateIngredient } from '@/routes/ingredients';
 import {
     create as createShoppingListItem,
     update as updateShoppingListItem,
@@ -48,6 +50,7 @@ interface GroceryStoreSection {
 interface GroceryStore {
     id: number;
     name: string;
+    sections?: GroceryStoreSection[];
 }
 
 interface Ingredient {
@@ -89,9 +92,11 @@ interface ShoppingList {
 
 const props = defineProps<{
     shoppingList: ResourceProp<ShoppingList>;
+    groceryStores: ResourceProp<GroceryStore[]>;
 }>();
 
 const shoppingList = computed(() => resolveResource(props.shoppingList));
+const groceryStores = computed(() => resolveResource(props.groceryStores));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -118,6 +123,27 @@ const editUnit = ref('');
 const editIsPurchased = ref(false);
 const editErrors = ref<Record<string, string>>({});
 const editProcessing = ref(false);
+
+// Ingredient edit modal state
+const showIngredientModal = ref(false);
+const editingIngredientItem = ref<ShoppingListItem | null>(null);
+const ingredientName = ref('');
+const ingredientErrors = ref<Record<string, string>>({});
+const ingredientProcessing = ref(false);
+const localStores = ref<GroceryStore[]>([]);
+const selectedStoreId = ref<number | string>('');
+const selectedSectionId = ref<number | string>('');
+
+// Store creation modal
+const showStoreModal = ref(false);
+const newStoreName = ref('');
+const newStoreSections = ref<string[]>(['']);
+const storeModalLoading = ref(false);
+
+// Section creation modal
+const showSectionModal = ref(false);
+const newSectionName = ref('');
+const sectionModalLoading = ref(false);
 
 const normalizeOrder = (items: ShoppingListItem[]): ShoppingListItem[] =>
     items.map((item, index) => ({
@@ -527,6 +553,227 @@ const saveItemEdit = () => {
     );
 };
 
+// Ingredient edit modal computed and functions
+const storeOptions = computed(() =>
+    localStores.value.map((s) => ({ id: s.id, name: s.name })),
+);
+
+const availableSections = computed(() => {
+    if (!selectedStoreId.value) return [];
+    const store = localStores.value.find(
+        (s) => s.id === Number(selectedStoreId.value),
+    );
+    return store?.sections ?? [];
+});
+
+const sectionOptions = computed(() =>
+    availableSections.value.map((s) => ({ id: s.id, name: s.name })),
+);
+
+watch(selectedStoreId, (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+        selectedSectionId.value = '';
+    }
+});
+
+const openIngredientModal = async (item: ShoppingListItem) => {
+    editingIngredientItem.value = item;
+    ingredientName.value = item.ingredient?.name ?? '';
+    localStores.value = [...groceryStores.value];
+    selectedStoreId.value = item.ingredient?.grocery_store_id ?? '';
+    selectedSectionId.value = item.ingredient?.grocery_store_section_id ?? '';
+    ingredientErrors.value = {};
+    showEditModal.value = false;
+    await nextTick();
+    showIngredientModal.value = true;
+};
+
+const saveIngredient = async () => {
+    if (!editingIngredientItem.value?.ingredient) return;
+
+    ingredientProcessing.value = true;
+    ingredientErrors.value = {};
+
+    const ingredientId = editingIngredientItem.value.ingredient.id;
+    const itemId = editingIngredientItem.value.id;
+
+    try {
+        // Update the ingredient via fetch to avoid redirect
+        const response = await fetch(updateIngredient.url(ingredientId), {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-XSRF-TOKEN': decodeURIComponent(
+                    document.cookie
+                        .split('; ')
+                        .find((row) => row.startsWith('XSRF-TOKEN='))
+                        ?.split('=')[1] ?? '',
+                ),
+            },
+            credentials: 'same-origin',
+            redirect: 'manual',
+            body: JSON.stringify({
+                name: ingredientName.value,
+                grocery_store_id: selectedStoreId.value || null,
+                grocery_store_section_id: selectedSectionId.value || null,
+            }),
+        });
+
+        // redirect: 'manual' returns type 'opaqueredirect' with status 0 on redirect
+        if (response.ok || response.type === 'opaqueredirect') {
+            // Clear item's store/section override so it uses ingredient's values
+            router.patch(
+                updateShoppingListItem(itemId),
+                {
+                    grocery_store_id: null,
+                    grocery_store_section_id: null,
+                },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        showIngredientModal.value = false;
+                        editingIngredientItem.value = null;
+                        router.reload();
+                    },
+                    onFinish: () => {
+                        ingredientProcessing.value = false;
+                    },
+                },
+            );
+        } else if (response.status === 422) {
+            const data = await response.json();
+            ingredientErrors.value = data.errors || {};
+            ingredientProcessing.value = false;
+        } else {
+            ingredientProcessing.value = false;
+        }
+    } catch {
+        ingredientProcessing.value = false;
+    }
+};
+
+function openStoreModal(prefillName?: string) {
+    newStoreName.value = prefillName || '';
+    newStoreSections.value = [''];
+    showStoreModal.value = true;
+}
+
+function addSectionInput() {
+    newStoreSections.value.push('');
+}
+
+function removeSectionInput(index: number) {
+    newStoreSections.value.splice(index, 1);
+}
+
+async function createStore() {
+    if (!newStoreName.value.trim()) return;
+
+    storeModalLoading.value = true;
+    try {
+        const sections = newStoreSections.value
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+
+        const response = await fetch('/grocery-stores/quick', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-XSRF-TOKEN': decodeURIComponent(
+                    document.cookie
+                        .split('; ')
+                        .find((row) => row.startsWith('XSRF-TOKEN='))
+                        ?.split('=')[1] ?? '',
+                ),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                name: newStoreName.value.trim(),
+                sections: sections,
+            }),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const newStore: GroceryStore = {
+                id: data.grocery_store.id,
+                name: data.grocery_store.name,
+                sections: data.grocery_store.sections || [],
+            };
+            localStores.value = [...localStores.value, newStore].sort((a, b) =>
+                a.name.localeCompare(b.name),
+            );
+            selectedStoreId.value = newStore.id;
+            showStoreModal.value = false;
+        }
+    } finally {
+        storeModalLoading.value = false;
+    }
+}
+
+function openSectionModal(prefillName?: string) {
+    newSectionName.value = prefillName || '';
+    showSectionModal.value = true;
+}
+
+async function createSection() {
+    if (!newSectionName.value.trim() || !selectedStoreId.value) return;
+
+    sectionModalLoading.value = true;
+    try {
+        const response = await fetch(
+            `/grocery-stores/${selectedStoreId.value}/sections/quick`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-XSRF-TOKEN': decodeURIComponent(
+                        document.cookie
+                            .split('; ')
+                            .find((row) => row.startsWith('XSRF-TOKEN='))
+                            ?.split('=')[1] ?? '',
+                    ),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    name: newSectionName.value.trim(),
+                }),
+            },
+        );
+
+        if (response.ok) {
+            const data = await response.json();
+            const newSection: GroceryStoreSection = {
+                id: data.section.id,
+                name: data.section.name,
+                grocery_store_id: Number(selectedStoreId.value),
+                sort_order: data.section.sort_order ?? 0,
+            };
+
+            // Update the store's sections in localStores
+            localStores.value = localStores.value.map((store) => {
+                if (store.id === Number(selectedStoreId.value)) {
+                    return {
+                        ...store,
+                        sections: [...(store.sections || []), newSection].sort(
+                            (a, b) => a.name.localeCompare(b.name),
+                        ),
+                    };
+                }
+                return store;
+            });
+
+            selectedSectionId.value = newSection.id;
+            showSectionModal.value = false;
+        }
+    } finally {
+        sectionModalLoading.value = false;
+    }
+}
+
 // Watch for prop changes to keep shoppingList reactive
 watch(
     () => props.shoppingList,
@@ -864,15 +1111,190 @@ watch(
                     </div>
                 </div>
 
+                <DialogFooter class="flex-col gap-2 sm:flex-row sm:justify-between">
+                    <Button
+                        variant="outline"
+                        @click="openIngredientModal(editingItem!)"
+                        :disabled="editProcessing || !editingItem?.ingredient"
+                    >
+                        <Pencil class="mr-2 size-4" />
+                        Edit ingredient
+                    </Button>
+                    <div class="flex gap-2">
+                        <DialogClose as-child>
+                            <Button variant="secondary">Cancel</Button>
+                        </DialogClose>
+                        <Button
+                            @click="saveItemEdit"
+                            :disabled="editProcessing"
+                        >
+                            Save changes
+                        </Button>
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Ingredient Edit Modal -->
+        <Dialog v-model:open="showIngredientModal">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Edit ingredient</DialogTitle>
+                    <DialogDescription>
+                        Update ingredient details. Changes will apply to all recipes using this ingredient.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4 py-4">
+                    <div class="grid gap-2">
+                        <Label for="ingredient-name">Ingredient name</Label>
+                        <Input
+                            id="ingredient-name"
+                            v-model="ingredientName"
+                        />
+                        <InputError :message="ingredientErrors.name" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label>Grocery store (optional)</Label>
+                        <Combobox
+                            v-model="selectedStoreId"
+                            :options="storeOptions"
+                            placeholder="Select or create a store..."
+                            allow-create
+                            create-label="Create store"
+                            @create="openStoreModal"
+                        />
+                        <InputError :message="ingredientErrors.grocery_store_id" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label>Store section (optional)</Label>
+                        <Combobox
+                            v-model="selectedSectionId"
+                            :options="sectionOptions"
+                            placeholder="Select or create a section..."
+                            :disabled="!selectedStoreId"
+                            allow-create
+                            create-label="Create section"
+                            @create="openSectionModal"
+                        />
+                        <InputError :message="ingredientErrors.grocery_store_section_id" />
+                    </div>
+                </div>
+
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
                         <Button variant="secondary">Cancel</Button>
                     </DialogClose>
                     <Button
-                        @click="saveItemEdit"
-                        :disabled="editProcessing"
+                        @click="saveIngredient"
+                        :disabled="ingredientProcessing || !ingredientName.trim()"
                     >
-                        Save changes
+                        Save ingredient
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Store Creation Modal -->
+        <Dialog v-model:open="showStoreModal">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Create grocery store</DialogTitle>
+                    <DialogDescription>
+                        Add a new store and optionally define its sections.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4 py-4">
+                    <div class="grid gap-2">
+                        <Label for="store-name">Store name</Label>
+                        <Input
+                            id="store-name"
+                            v-model="newStoreName"
+                            placeholder="Whole Foods"
+                        />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label>Sections (optional)</Label>
+                        <div class="space-y-2">
+                            <div
+                                v-for="(_, index) in newStoreSections"
+                                :key="index"
+                                class="flex gap-2"
+                            >
+                                <Input
+                                    v-model="newStoreSections[index]"
+                                    placeholder="e.g., Produce, Dairy, Bakery"
+                                />
+                                <Button
+                                    v-if="newStoreSections.length > 1"
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    @click="removeSectionInput(index)"
+                                >
+                                    ×
+                                </Button>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                @click="addSectionInput"
+                            >
+                                Add section
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <DialogClose as-child>
+                        <Button variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    <Button
+                        @click="createStore"
+                        :disabled="storeModalLoading || !newStoreName.trim()"
+                    >
+                        Create store
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Section Creation Modal -->
+        <Dialog v-model:open="showSectionModal">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Create section</DialogTitle>
+                    <DialogDescription>
+                        Add a new section to the selected store.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4 py-4">
+                    <div class="grid gap-2">
+                        <Label for="section-name">Section name</Label>
+                        <Input
+                            id="section-name"
+                            v-model="newSectionName"
+                            placeholder="e.g., Produce"
+                        />
+                    </div>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <DialogClose as-child>
+                        <Button variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    <Button
+                        @click="createSection"
+                        :disabled="sectionModalLoading || !newSectionName.trim()"
+                    >
+                        Create section
                     </Button>
                 </DialogFooter>
             </DialogContent>
