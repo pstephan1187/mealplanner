@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Ingredients\StoreIngredientRequest;
 use App\Http\Requests\Ingredients\UpdateIngredientRequest;
+use App\Http\Resources\GroceryStoreResource;
 use App\Http\Resources\IngredientResource;
+use App\Models\GroceryStore;
 use App\Models\Ingredient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +20,7 @@ class IngredientController extends Controller
     {
         $ingredients = Ingredient::query()
             ->where('user_id', $request->user()->id)
+            ->with(['groceryStore', 'groceryStoreSection'])
             ->orderBy('name')
             ->paginate();
 
@@ -26,9 +29,17 @@ class IngredientController extends Controller
         ]);
     }
 
-    public function create(): InertiaResponse
+    public function create(Request $request): InertiaResponse
     {
-        return Inertia::render('ingredients/Create');
+        $groceryStores = GroceryStore::query()
+            ->where('user_id', $request->user()->id)
+            ->with('sections')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('ingredients/Create', [
+            'groceryStores' => GroceryStoreResource::collection($groceryStores),
+        ]);
     }
 
     public function store(StoreIngredientRequest $request): RedirectResponse
@@ -51,6 +62,8 @@ class IngredientController extends Controller
     {
         $this->ensureIngredientOwner($request, $ingredient);
 
+        $ingredient->load(['groceryStore', 'groceryStoreSection']);
+
         return Inertia::render('ingredients/Show', [
             'ingredient' => IngredientResource::make($ingredient),
         ]);
@@ -60,8 +73,17 @@ class IngredientController extends Controller
     {
         $this->ensureIngredientOwner($request, $ingredient);
 
+        $ingredient->load(['groceryStore', 'groceryStoreSection']);
+
+        $groceryStores = GroceryStore::query()
+            ->where('user_id', $request->user()->id)
+            ->with('sections')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('ingredients/Edit', [
             'ingredient' => IngredientResource::make($ingredient),
+            'groceryStores' => GroceryStoreResource::collection($groceryStores),
         ]);
     }
 

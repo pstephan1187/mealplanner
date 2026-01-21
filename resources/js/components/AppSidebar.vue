@@ -7,6 +7,7 @@ import {
     CookingPot,
     Folder,
     LayoutGrid,
+    Carrot,
 } from 'lucide-vue-next';
 
 import NavFooter from '@/components/NavFooter.vue';
@@ -22,6 +23,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as ingredientsIndex } from '@/routes/ingredients';
 import { index as mealPlansIndex } from '@/routes/meal-plans';
 import { index as recipesIndex } from '@/routes/recipes';
 import { index as shoppingListsIndex } from '@/routes/shopping-lists';
@@ -39,6 +41,11 @@ const mainNavItems: NavItem[] = [
         title: 'Recipes',
         href: recipesIndex(),
         icon: CookingPot,
+    },
+    {
+        title: 'Ingredients',
+        href: ingredientsIndex(),
+        icon: Carrot,
     },
     {
         title: 'Meal Plans',

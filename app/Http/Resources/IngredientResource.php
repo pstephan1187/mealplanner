@@ -17,6 +17,10 @@ class IngredientResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'grocery_store_id' => $this->grocery_store_id,
+            'grocery_store_section_id' => $this->grocery_store_section_id,
+            'grocery_store' => GroceryStoreResource::make($this->whenLoaded('groceryStore')),
+            'grocery_store_section' => GroceryStoreSectionResource::make($this->whenLoaded('groceryStoreSection')),
             'pivot' => $this->whenPivotLoaded('ingredient_recipe', function (): array {
                 return [
                     'quantity' => $this->pivot->quantity,

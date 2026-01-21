@@ -7,24 +7,12 @@ import Pagination, { type PaginationLink } from '@/components/Pagination.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { create, index as ingredientsIndex, show } from '@/routes/ingredients';
 import { type BreadcrumbItem } from '@/types';
 
 interface GroceryStore {
     id: number;
     name: string;
-}
-
-interface GroceryStoreSection {
-    id: number;
-    name: string;
-}
-
-interface Ingredient {
-    id: number;
-    name: string;
-    grocery_store?: GroceryStore | null;
-    grocery_store_section?: GroceryStoreSection | null;
+    sections_count?: number;
 }
 
 interface Paginated<T> {
@@ -38,82 +26,78 @@ interface Paginated<T> {
 }
 
 const props = defineProps<{
-    ingredients: Paginated<Ingredient>;
+    groceryStores: Paginated<GroceryStore>;
 }>();
+
+const groceryStoresIndex = () => ({ url: '/grocery-stores' });
+const create = () => ({ url: '/grocery-stores/create' });
+const show = (store: { id: number }) => ({ url: `/grocery-stores/${store.id}` });
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Ingredients',
-        href: ingredientsIndex().url,
+        title: 'Grocery Stores',
+        href: groceryStoresIndex().url,
     },
 ];
 
-const ingredientItems = computed(() => props.ingredients.data ?? []);
-
-const getLocationText = (ingredient: Ingredient): string => {
-    if (!ingredient.grocery_store) {
-        return 'No store assigned';
-    }
-    if (ingredient.grocery_store_section) {
-        return `${ingredient.grocery_store.name} · ${ingredient.grocery_store_section.name}`;
-    }
-    return ingredient.grocery_store.name;
-};
+const storeItems = computed(() => props.groceryStores.data ?? []);
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Ingredients" />
+        <Head title="Grocery Stores" />
 
         <div class="flex flex-col gap-8 px-6 py-8">
             <div
                 class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
             >
                 <Heading
-                    title="Ingredients"
-                    description="Keep your ingredient list tidy and reusable."
+                    title="Grocery Stores"
+                    description="Manage your stores and their sections for organized shopping."
                 />
                 <Button as-child>
-                    <Link :href="create()">Add ingredient</Link>
+                    <Link :href="create()">Add store</Link>
                 </Button>
             </div>
 
-            <div v-if="ingredientItems.length === 0">
+            <div v-if="storeItems.length === 0">
                 <Card>
                     <CardContent
                         class="flex flex-col items-start gap-3 py-10 text-sm text-muted-foreground"
                     >
                         <p>
-                            No ingredients yet. Start with pantry staples you
-                            use often.
+                            No grocery stores yet. Add your favorite stores to
+                            organize ingredients by aisle.
                         </p>
                         <Button as-child size="sm">
-                            <Link :href="create()">Add your first ingredient</Link>
+                            <Link :href="create()">Add your first store</Link>
                         </Button>
                     </CardContent>
                 </Card>
             </div>
 
             <div v-else class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <Card
-                    v-for="ingredient in ingredientItems"
-                    :key="ingredient.id"
-                >
+                <Card v-for="store in storeItems" :key="store.id">
                     <CardContent class="flex items-center justify-between">
                         <div>
-                            <p class="font-medium">{{ ingredient.name }}</p>
+                            <p class="font-medium">{{ store.name }}</p>
                             <p class="text-sm text-muted-foreground">
-                                {{ getLocationText(ingredient) }}
+                                {{ store.sections_count ?? 0 }}
+                                {{
+                                    store.sections_count === 1
+                                        ? 'section'
+                                        : 'sections'
+                                }}
                             </p>
                         </div>
                         <Button variant="ghost" size="sm" as-child>
-                            <Link :href="show(ingredient)">View</Link>
+                            <Link :href="show(store)">View</Link>
                         </Button>
                     </CardContent>
                 </Card>
             </div>
 
-            <Pagination :links="ingredients.links" />
+            <Pagination :links="groceryStores.links" />
         </div>
     </AppLayout>
 </template>

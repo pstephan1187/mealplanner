@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\GroceryStoreController;
+use App\Http\Controllers\GroceryStoreSectionController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\MealPlanRecipeController;
@@ -55,8 +57,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('shopping-lists.items.order');
     Route::post('ingredients/quick', [IngredientController::class, 'storeQuick'])
         ->name('ingredients.store-quick');
+    Route::post('grocery-stores/quick', [GroceryStoreController::class, 'storeQuick'])
+        ->name('grocery-stores.store-quick');
+    Route::post('grocery-stores/{grocery_store}/sections/quick', [GroceryStoreSectionController::class, 'storeQuick'])
+        ->name('grocery-stores.sections.store-quick');
     Route::resource('recipes', RecipeController::class);
-    // Route::resource('ingredients', IngredientController::class);
+    Route::resource('ingredients', IngredientController::class);
+    Route::resource('grocery-stores', GroceryStoreController::class);
+    Route::resource('grocery-stores.sections', GroceryStoreSectionController::class)->only(['store', 'update', 'destroy']);
     Route::resource('meal-plans', MealPlanController::class);
     Route::resource('meal-plan-recipes', MealPlanRecipeController::class);
     Route::resource('shopping-lists', ShoppingListController::class);

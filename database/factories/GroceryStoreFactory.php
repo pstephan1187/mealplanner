@@ -6,9 +6,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Ingredient>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\GroceryStore>
  */
-class IngredientFactory extends Factory
+class GroceryStoreFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -19,9 +19,7 @@ class IngredientFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'name' => fake()->unique()->words(2, true),
-            'grocery_store_id' => null,
-            'grocery_store_section_id' => null,
+            'name' => fake()->unique()->company(),
         ];
     }
 }

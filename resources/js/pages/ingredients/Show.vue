@@ -21,22 +21,29 @@ import {
 } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
+import {
+    destroy,
+    edit,
+    index as ingredientsIndex,
+    show,
+} from '@/routes/ingredients';
 import { type BreadcrumbItem } from '@/types';
 
-// Routes disabled - using hardcoded paths temporarily
-const ingredientsIndex = () => ({ url: '/ingredients' });
-const show = (ingredient: { id: number }) => ({ url: `/ingredients/${ingredient.id}` });
-const edit = (ingredient: { id: number }) => ({ url: `/ingredients/${ingredient.id}/edit` });
-const destroy = {
-    form: (ingredient: { id: number }) => ({
-        action: `/ingredients/${ingredient.id}`,
-        method: 'delete',
-    }),
-};
+interface GroceryStore {
+    id: number;
+    name: string;
+}
+
+interface GroceryStoreSection {
+    id: number;
+    name: string;
+}
 
 interface Ingredient {
     id: number;
     name: string;
+    grocery_store?: GroceryStore | null;
+    grocery_store_section?: GroceryStoreSection | null;
 }
 
 const props = defineProps<{
@@ -115,10 +122,27 @@ const breadcrumbs: BreadcrumbItem[] = [
 
             <Card class="max-w-xl">
                 <CardHeader>
-                    <CardTitle>Ingredient</CardTitle>
+                    <CardTitle>Details</CardTitle>
                 </CardHeader>
-                <CardContent class="text-sm text-muted-foreground">
-                    Use this ingredient across recipes and shopping lists.
+                <CardContent class="space-y-4">
+                    <div class="grid gap-1">
+                        <dt class="text-sm font-medium">Grocery Store</dt>
+                        <dd class="text-sm text-muted-foreground">
+                            {{
+                                ingredient.grocery_store?.name ??
+                                'No store assigned'
+                            }}
+                        </dd>
+                    </div>
+                    <div class="grid gap-1">
+                        <dt class="text-sm font-medium">Store Section</dt>
+                        <dd class="text-sm text-muted-foreground">
+                            {{
+                                ingredient.grocery_store_section?.name ??
+                                'No section assigned'
+                            }}
+                        </dd>
+                    </div>
                 </CardContent>
             </Card>
         </div>

@@ -20,11 +20,23 @@ class Ingredient extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'grocery_store_id',
+        'grocery_store_section_id',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function groceryStore(): BelongsTo
+    {
+        return $this->belongsTo(GroceryStore::class);
+    }
+
+    public function groceryStoreSection(): BelongsTo
+    {
+        return $this->belongsTo(GroceryStoreSection::class);
     }
 
     public function recipes(): BelongsToMany
