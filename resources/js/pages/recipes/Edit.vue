@@ -15,6 +15,17 @@ interface IngredientOption {
     name: string;
 }
 
+interface GroceryStoreSection {
+    id: number;
+    name: string;
+}
+
+interface GroceryStore {
+    id: number;
+    name: string;
+    sections?: GroceryStoreSection[];
+}
+
 interface RecipeIngredientPivot {
     quantity: string | number;
     unit: string;
@@ -43,10 +54,12 @@ interface Recipe {
 const props = defineProps<{
     recipe: ResourceProp<Recipe>;
     ingredients: ResourceProp<IngredientOption[]>;
+    groceryStores: ResourceProp<GroceryStore[]>;
 }>();
 
 const recipe = resolveResource(props.recipe);
 const ingredients = resolveResource(props.ingredients);
+const groceryStores = resolveResource(props.groceryStores);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -86,6 +99,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <RecipeForm
                     :recipe="recipe"
                     :ingredients="ingredients"
+                    :grocery-stores="groceryStores"
                     :errors="errors"
                 />
 

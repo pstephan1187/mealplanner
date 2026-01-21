@@ -15,11 +15,24 @@ interface IngredientOption {
     name: string;
 }
 
+interface GroceryStoreSection {
+    id: number;
+    name: string;
+}
+
+interface GroceryStore {
+    id: number;
+    name: string;
+    sections?: GroceryStoreSection[];
+}
+
 const props = defineProps<{
     ingredients: ResourceProp<IngredientOption[]>;
+    groceryStores: ResourceProp<GroceryStore[]>;
 }>();
 
 const ingredients = resolveResource(props.ingredients);
+const groceryStores = resolveResource(props.groceryStores);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -56,7 +69,11 @@ const breadcrumbs: BreadcrumbItem[] = [
                 class="space-y-8"
                 v-slot="{ errors, processing }"
             >
-                <RecipeForm :ingredients="ingredients" :errors="errors" />
+                <RecipeForm
+                    :ingredients="ingredients"
+                    :grocery-stores="groceryStores"
+                    :errors="errors"
+                />
 
                 <div class="flex flex-wrap items-center gap-3">
                     <Button variant="secondary" as-child>

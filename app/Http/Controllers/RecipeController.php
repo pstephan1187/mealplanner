@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Recipes\StoreRecipeRequest;
 use App\Http\Requests\Recipes\UpdateRecipeRequest;
+use App\Http\Resources\GroceryStoreResource;
 use App\Http\Resources\IngredientResource;
 use App\Http\Resources\RecipeResource;
+use App\Models\GroceryStore;
 use App\Models\Ingredient;
 use App\Models\Recipe;
 use Illuminate\Http\RedirectResponse;
@@ -40,8 +42,15 @@ class RecipeController extends Controller
             ->orderBy('name')
             ->get();
 
+        $groceryStores = GroceryStore::query()
+            ->where('user_id', $request->user()->id)
+            ->with('sections')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('recipes/Create', [
             'ingredients' => IngredientResource::collection($ingredients),
+            'groceryStores' => GroceryStoreResource::collection($groceryStores),
         ]);
     }
 
@@ -84,9 +93,16 @@ class RecipeController extends Controller
             ->orderBy('name')
             ->get();
 
+        $groceryStores = GroceryStore::query()
+            ->where('user_id', $request->user()->id)
+            ->with('sections')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('recipes/Edit', [
             'recipe' => RecipeResource::make($recipe->load('ingredients')),
             'ingredients' => IngredientResource::collection($ingredients),
+            'groceryStores' => GroceryStoreResource::collection($groceryStores),
         ]);
     }
 

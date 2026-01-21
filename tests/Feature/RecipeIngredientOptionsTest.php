@@ -10,7 +10,7 @@ it('provides ingredient options when editing a recipe', function () {
 
     $recipe = Recipe::factory()->for($user)->create();
 
-    Ingredient::factory()->count(3)->create();
+    Ingredient::factory()->for($user)->count(3)->create();
 
     $this->actingAs($user)
         ->get("/recipes/{$recipe->id}/edit")
@@ -21,5 +21,6 @@ it('provides ingredient options when editing a recipe', function () {
             ->has('ingredients.data', 3)
             ->has('ingredients.data.0.id')
             ->has('ingredients.data.0.name')
+            ->has('groceryStores.data')
         );
 });

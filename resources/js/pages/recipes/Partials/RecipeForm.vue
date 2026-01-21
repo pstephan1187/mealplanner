@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +24,17 @@ import { storeQuick } from '@/actions/App/Http/Controllers/IngredientController'
 interface IngredientOption {
     id: number;
     name: string;
+}
+
+interface GroceryStoreSection {
+    id: number;
+    name: string;
+}
+
+interface GroceryStore {
+    id: number;
+    name: string;
+    sections?: GroceryStoreSection[];
 }
 
 interface RecipeIngredientPivot {
@@ -52,6 +72,7 @@ interface IngredientRow {
 interface Props {
     recipe?: Recipe | null;
     ingredients: IngredientOption[];
+    groceryStores: GroceryStore[];
     errors: Record<string, string | undefined>;
 }
 
@@ -60,6 +81,48 @@ const props = defineProps<Props>();
 const selectedMealTypes = computed(() => props.recipe?.meal_types ?? []);
 
 const localIngredients = ref<ComboboxOption[]>([...props.ingredients]);
+const localStores = ref<GroceryStore[]>([...props.groceryStores]);
+
+// Ingredient creation modal state
+const showIngredientModal = ref(false);
+const ingredientModalRowIndex = ref<number | null>(null);
+const newIngredientName = ref('');
+const newIngredientStoreId = ref<number | string>('');
+const newIngredientSectionId = ref<number | string>('');
+const ingredientModalLoading = ref(false);
+
+// Store creation modal state
+const showStoreModal = ref(false);
+const newStoreName = ref('');
+const newStoreSections = ref<string[]>(['']);
+const storeModalLoading = ref(false);
+
+// Section creation modal state
+const showSectionModal = ref(false);
+const newSectionName = ref('');
+const sectionModalLoading = ref(false);
+
+const storeOptions = computed(() =>
+    localStores.value.map((s) => ({ id: s.id, name: s.name })),
+);
+
+const availableSections = computed(() => {
+    if (!newIngredientStoreId.value) return [];
+    const store = localStores.value.find(
+        (s) => s.id === Number(newIngredientStoreId.value),
+    );
+    return store?.sections ?? [];
+});
+
+const sectionOptions = computed(() =>
+    availableSections.value.map((s) => ({ id: s.id, name: s.name })),
+);
+
+watch(newIngredientStoreId, (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+        newIngredientSectionId.value = '';
+    }
+});
 
 const ingredientRows = ref<IngredientRow[]>(
     props.recipe?.ingredients?.length
@@ -105,22 +168,41 @@ const handlePhotoChange = (event: Event) => {
     photoPreview.value = photoObjectUrl;
 };
 
-const handleCreateIngredient = async (name: string, rowIndex: number) => {
+function getXsrfToken(): string {
+    return decodeURIComponent(
+        document.cookie
+            .split('; ')
+            .find((row) => row.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1] ?? '',
+    );
+}
+
+function openIngredientModal(name: string, rowIndex: number) {
+    newIngredientName.value = name;
+    newIngredientStoreId.value = '';
+    newIngredientSectionId.value = '';
+    ingredientModalRowIndex.value = rowIndex;
+    showIngredientModal.value = true;
+}
+
+async function createIngredient() {
+    if (!newIngredientName.value.trim()) return;
+
+    ingredientModalLoading.value = true;
     try {
         const response = await fetch(storeQuick.url(), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
-                'X-XSRF-TOKEN': decodeURIComponent(
-                    document.cookie
-                        .split('; ')
-                        .find((row) => row.startsWith('XSRF-TOKEN='))
-                        ?.split('=')[1] ?? '',
-                ),
+                'X-XSRF-TOKEN': getXsrfToken(),
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ name }),
+            body: JSON.stringify({
+                name: newIngredientName.value.trim(),
+                grocery_store_id: newIngredientStoreId.value || null,
+                grocery_store_section_id: newIngredientSectionId.value || null,
+            }),
         });
 
         if (!response.ok) {
@@ -137,15 +219,128 @@ const handleCreateIngredient = async (name: string, rowIndex: number) => {
             name: newIngredient.name,
         });
 
-        localIngredients.value.sort((a, b) =>
-            a.name.localeCompare(b.name),
-        );
+        localIngredients.value.sort((a, b) => a.name.localeCompare(b.name));
 
-        ingredientRows.value[rowIndex].ingredient_id = newIngredient.id;
+        if (ingredientModalRowIndex.value !== null) {
+            ingredientRows.value[ingredientModalRowIndex.value].ingredient_id =
+                newIngredient.id;
+        }
+
+        showIngredientModal.value = false;
     } catch (error) {
         console.error('Error creating ingredient:', error);
+    } finally {
+        ingredientModalLoading.value = false;
     }
-};
+}
+
+function openStoreModal(prefillName?: string) {
+    newStoreName.value = prefillName || '';
+    newStoreSections.value = [''];
+    showStoreModal.value = true;
+}
+
+function addSectionInput() {
+    newStoreSections.value.push('');
+}
+
+function removeSectionInput(index: number) {
+    newStoreSections.value.splice(index, 1);
+}
+
+async function createStore() {
+    if (!newStoreName.value.trim()) return;
+
+    storeModalLoading.value = true;
+    try {
+        const sections = newStoreSections.value
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+
+        const response = await fetch('/grocery-stores/quick', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-XSRF-TOKEN': getXsrfToken(),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                name: newStoreName.value.trim(),
+                sections: sections,
+            }),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const newStore: GroceryStore = {
+                id: data.grocery_store.id,
+                name: data.grocery_store.name,
+                sections: data.grocery_store.sections || [],
+            };
+            localStores.value = [...localStores.value, newStore].sort((a, b) =>
+                a.name.localeCompare(b.name),
+            );
+            newIngredientStoreId.value = newStore.id;
+            showStoreModal.value = false;
+        }
+    } finally {
+        storeModalLoading.value = false;
+    }
+}
+
+function openSectionModal(prefillName?: string) {
+    newSectionName.value = prefillName || '';
+    showSectionModal.value = true;
+}
+
+async function createSection() {
+    if (!newSectionName.value.trim() || !newIngredientStoreId.value) return;
+
+    sectionModalLoading.value = true;
+    try {
+        const response = await fetch(
+            `/grocery-stores/${newIngredientStoreId.value}/sections/quick`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-XSRF-TOKEN': getXsrfToken(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    name: newSectionName.value.trim(),
+                }),
+            },
+        );
+
+        if (response.ok) {
+            const data = await response.json();
+            const newSection: GroceryStoreSection = {
+                id: data.section.id,
+                name: data.section.name,
+            };
+
+            localStores.value = localStores.value.map((store) => {
+                if (store.id === Number(newIngredientStoreId.value)) {
+                    return {
+                        ...store,
+                        sections: [...(store.sections || []), newSection].sort(
+                            (a, b) => a.name.localeCompare(b.name),
+                        ),
+                    };
+                }
+                return store;
+            });
+
+            newIngredientSectionId.value = newSection.id;
+            showSectionModal.value = false;
+        }
+    } finally {
+        sectionModalLoading.value = false;
+    }
+}
 
 onBeforeUnmount(() => {
     if (photoObjectUrl) {
@@ -324,7 +519,7 @@ onBeforeUnmount(() => {
                             placeholder="Select or create ingredient..."
                             :allow-create="true"
                             create-label="Create"
-                            @create="(name) => handleCreateIngredient(name, index)"
+                            @create="(name) => openIngredientModal(name, index)"
                         />
                         <InputError
                             :message="
@@ -406,5 +601,168 @@ onBeforeUnmount(() => {
                 <InputError :message="errors.instructions" />
             </CardContent>
         </Card>
+
+        <!-- Ingredient Creation Modal -->
+        <Dialog v-model:open="showIngredientModal">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Create ingredient</DialogTitle>
+                    <DialogDescription>
+                        Add a new ingredient and optionally assign it to a store.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4 py-4">
+                    <div class="grid gap-2">
+                        <Label for="ingredient-name">Ingredient name</Label>
+                        <Input
+                            id="ingredient-name"
+                            v-model="newIngredientName"
+                            placeholder="Extra virgin olive oil"
+                        />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label>Grocery store (optional)</Label>
+                        <Combobox
+                            v-model="newIngredientStoreId"
+                            :options="storeOptions"
+                            placeholder="Select or create a store..."
+                            allow-create
+                            create-label="Create store"
+                            @create="openStoreModal"
+                        />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label>Store section (optional)</Label>
+                        <Combobox
+                            v-model="newIngredientSectionId"
+                            :options="sectionOptions"
+                            placeholder="Select or create a section..."
+                            :disabled="!newIngredientStoreId"
+                            allow-create
+                            create-label="Create section"
+                            @create="openSectionModal"
+                        />
+                    </div>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <DialogClose as-child>
+                        <Button variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    <Button
+                        @click="createIngredient"
+                        :disabled="ingredientModalLoading || !newIngredientName.trim()"
+                    >
+                        Create ingredient
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Store Creation Modal -->
+        <Dialog v-model:open="showStoreModal">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Create grocery store</DialogTitle>
+                    <DialogDescription>
+                        Add a new store and optionally define its sections.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4 py-4">
+                    <div class="grid gap-2">
+                        <Label for="store-name">Store name</Label>
+                        <Input
+                            id="store-name"
+                            v-model="newStoreName"
+                            placeholder="Whole Foods"
+                        />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label>Sections (optional)</Label>
+                        <div class="space-y-2">
+                            <div
+                                v-for="(_, index) in newStoreSections"
+                                :key="index"
+                                class="flex gap-2"
+                            >
+                                <Input
+                                    v-model="newStoreSections[index]"
+                                    placeholder="e.g., Produce, Dairy, Bakery"
+                                />
+                                <Button
+                                    v-if="newStoreSections.length > 1"
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    @click="removeSectionInput(index)"
+                                >
+                                    ×
+                                </Button>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                @click="addSectionInput"
+                            >
+                                Add section
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <DialogClose as-child>
+                        <Button variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    <Button
+                        @click="createStore"
+                        :disabled="storeModalLoading || !newStoreName.trim()"
+                    >
+                        Create store
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Section Creation Modal -->
+        <Dialog v-model:open="showSectionModal">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Create section</DialogTitle>
+                    <DialogDescription>
+                        Add a new section to the selected store.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4 py-4">
+                    <div class="grid gap-2">
+                        <Label for="section-name">Section name</Label>
+                        <Input
+                            id="section-name"
+                            v-model="newSectionName"
+                            placeholder="e.g., Produce"
+                        />
+                    </div>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <DialogClose as-child>
+                        <Button variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    <Button
+                        @click="createSection"
+                        :disabled="sectionModalLoading || !newSectionName.trim()"
+                    >
+                        Create section
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>
