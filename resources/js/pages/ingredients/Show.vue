@@ -3,12 +3,7 @@ import { Form, Head, Link } from '@inertiajs/vue3';
 
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -28,23 +23,7 @@ import {
     show,
 } from '@/routes/ingredients';
 import { type BreadcrumbItem } from '@/types';
-
-interface GroceryStore {
-    id: number;
-    name: string;
-}
-
-interface GroceryStoreSection {
-    id: number;
-    name: string;
-}
-
-interface Ingredient {
-    id: number;
-    name: string;
-    grocery_store?: GroceryStore | null;
-    grocery_store_section?: GroceryStoreSection | null;
-}
+import type { Ingredient } from '@/types/models';
 
 const props = defineProps<{
     ingredient: ResourceProp<Ingredient>;

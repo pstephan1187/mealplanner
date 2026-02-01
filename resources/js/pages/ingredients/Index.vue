@@ -1,43 +1,15 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
 
-import Heading from '@/components/Heading.vue';
-import Pagination, { type PaginationLink } from '@/components/Pagination.vue';
+import ResourceIndex from '@/components/ResourceIndex.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { create, index as ingredientsIndex, show } from '@/routes/ingredients';
 import { type BreadcrumbItem } from '@/types';
+import type { Ingredient, Paginated } from '@/types/models';
 
-interface GroceryStore {
-    id: number;
-    name: string;
-}
-
-interface GroceryStoreSection {
-    id: number;
-    name: string;
-}
-
-interface Ingredient {
-    id: number;
-    name: string;
-    grocery_store?: GroceryStore | null;
-    grocery_store_section?: GroceryStoreSection | null;
-}
-
-interface Paginated<T> {
-    data: T[];
-    links?: PaginationLink[];
-    meta?: {
-        total?: number;
-        from?: number | null;
-        to?: number | null;
-    };
-}
-
-const props = defineProps<{
+defineProps<{
     ingredients: Paginated<Ingredient>;
 }>();
 
@@ -47,8 +19,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: ingredientsIndex().url,
     },
 ];
-
-const ingredientItems = computed(() => props.ingredients.data ?? []);
 
 const getLocationText = (ingredient: Ingredient): string => {
     if (!ingredient.grocery_store) {
@@ -65,55 +35,28 @@ const getLocationText = (ingredient: Ingredient): string => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Ingredients" />
 
-        <div class="flex flex-col gap-8 px-6 py-8">
-            <div
-                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-                <Heading
-                    title="Ingredients"
-                    description="Keep your ingredient list tidy and reusable."
-                />
-                <Button as-child>
-                    <Link :href="create()">Add ingredient</Link>
-                </Button>
-            </div>
-
-            <div v-if="ingredientItems.length === 0">
-                <Card>
-                    <CardContent
-                        class="flex flex-col items-start gap-3 py-10 text-sm text-muted-foreground"
-                    >
-                        <p>
-                            No ingredients yet. Start with pantry staples you
-                            use often.
+        <ResourceIndex
+            title="Ingredients"
+            description="Keep your ingredient list tidy and reusable."
+            :create-route="create().url"
+            create-label="Add ingredient"
+            empty-state-message="No ingredients yet. Start with pantry staples you use often."
+            :items="ingredients"
+            #default="{ item: ingredient }"
+        >
+            <Card>
+                <CardContent class="flex items-center justify-between">
+                    <div>
+                        <p class="font-medium">{{ ingredient.name }}</p>
+                        <p class="text-sm text-muted-foreground">
+                            {{ getLocationText(ingredient) }}
                         </p>
-                        <Button as-child size="sm">
-                            <Link :href="create()">Add your first ingredient</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div v-else class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <Card
-                    v-for="ingredient in ingredientItems"
-                    :key="ingredient.id"
-                >
-                    <CardContent class="flex items-center justify-between">
-                        <div>
-                            <p class="font-medium">{{ ingredient.name }}</p>
-                            <p class="text-sm text-muted-foreground">
-                                {{ getLocationText(ingredient) }}
-                            </p>
-                        </div>
-                        <Button variant="ghost" size="sm" as-child>
-                            <Link :href="show(ingredient)">View</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Pagination :links="ingredients.links" />
-        </div>
+                    </div>
+                    <Button variant="ghost" size="sm" as-child>
+                        <Link :href="show(ingredient)">View</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </ResourceIndex>
     </AppLayout>
 </template>

@@ -5,12 +5,7 @@ import { computed, ref, watch } from 'vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -25,50 +20,31 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { MEAL_TYPES } from '@/lib/constants';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
-import { store as storeMealPlanRecipe, update as updateMealPlanRecipe } from '@/routes/meal-plan-recipes';
-import { create as createRecipe } from '@/routes/recipes';
+import {
+    store as storeMealPlanRecipe,
+    update as updateMealPlanRecipe,
+} from '@/routes/meal-plan-recipes';
 import { edit, index as mealPlansIndex, show } from '@/routes/meal-plans';
-import { show as showShoppingList, store as storeShoppingList } from '@/routes/shopping-lists';
+import { create as createRecipe } from '@/routes/recipes';
+import {
+    show as showShoppingList,
+    store as storeShoppingList,
+} from '@/routes/shopping-lists';
 import { type BreadcrumbItem } from '@/types';
+import {
+    resolveCollection,
+    type MealPlan,
+    type MealPlanRecipe,
+    type Recipe,
+    type ResourceCollection,
+} from '@/types/models';
 
-interface RecipeSummary {
-    id: number;
-    name: string;
-    photo_url?: string | null;
-}
-
-interface RecipeOption {
-    id: number;
-    name: string;
+interface RecipeOption extends Pick<
+    Recipe,
+    'id' | 'name' | 'servings' | 'meal_types' | 'photo_url'
+> {
     servings: number;
-    meal_types?: string[];
-    photo_url?: string | null;
 }
-
-interface MealPlanRecipe {
-    id: number;
-    meal_plan_id: number;
-    recipe_id: number;
-    date: string;
-    meal_type: string;
-    servings: number;
-    recipe?: RecipeSummary | null;
-}
-
-interface ShoppingList {
-    id: number;
-}
-
-interface MealPlan {
-    id: number;
-    name: string;
-    start_date?: string | null;
-    end_date?: string | null;
-    meal_plan_recipes?: MealPlanRecipe[];
-    shopping_list?: ShoppingList | null;
-}
-
-type ResourceCollection<T> = { data: T[] } | T[];
 
 const props = defineProps<{
     mealPlan: ResourceProp<MealPlan>;
@@ -77,9 +53,7 @@ const props = defineProps<{
 
 const mealPlan = computed(() => resolveResource(props.mealPlan));
 
-const recipeOptions = computed(() =>
-    Array.isArray(props.recipes) ? props.recipes : props.recipes.data ?? [],
-);
+const recipeOptions = computed(() => resolveCollection(props.recipes));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -93,9 +67,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const assignmentDialogOpen = ref(false);
-const activeSlot = ref<{ dateKey: string; label: string; mealType: string } | null>(
-    null,
-);
+const activeSlot = ref<{
+    dateKey: string;
+    label: string;
+    mealType: string;
+} | null>(null);
 const activeMealPlanRecipeId = ref<number | null>(null);
 const shouldSyncServings = ref(true);
 const isEditing = computed(() => activeMealPlanRecipeId.value !== null);
@@ -158,12 +134,12 @@ const weekDays = computed(() => {
     return days;
 });
 
-const mealPlanRecipes = computed(
-    () => mealPlan.value.meal_plan_recipes ?? [],
-);
+const mealPlanRecipes = computed(() => mealPlan.value.meal_plan_recipes ?? []);
 
-const selectedRecipe = computed(() =>
-    recipeOptions.value.find((recipe) => recipe.id === form.recipe_id) ?? null,
+const selectedRecipe = computed(
+    () =>
+        recipeOptions.value.find((recipe) => recipe.id === form.recipe_id) ??
+        null,
 );
 
 watch(selectedRecipe, (recipe) => {
@@ -304,11 +280,10 @@ const createShoppingListFromPlan = () => {
                     <Button variant="secondary" as-child>
                         <Link :href="edit(mealPlan.id)">Edit plan</Link>
                     </Button>
-                    <Button
-                        v-if="mealPlan.shopping_list"
-                        as-child
-                    >
-                        <Link :href="showShoppingList(mealPlan.shopping_list.id)">
+                    <Button v-if="mealPlan.shopping_list" as-child>
+                        <Link
+                            :href="showShoppingList(mealPlan.shopping_list.id)"
+                        >
                             View list
                         </Link>
                     </Button>
@@ -318,7 +293,11 @@ const createShoppingListFromPlan = () => {
                         :disabled="shoppingListForm.processing"
                         @click="createShoppingListFromPlan"
                     >
-                        {{ shoppingListForm.processing ? 'Creating...' : 'Create list' }}
+                        {{
+                            shoppingListForm.processing
+                                ? 'Creating...'
+                                : 'Create list'
+                        }}
                     </Button>
                 </div>
             </div>
@@ -352,7 +331,7 @@ const createShoppingListFromPlan = () => {
                                     class="space-y-2"
                                 >
                                     <div
-                                        class="flex items-center justify-between text-xs font-semibold uppercase text-muted-foreground"
+                                        class="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase"
                                     >
                                         <span>{{ mealType }}</span>
                                     </div>
@@ -365,13 +344,22 @@ const createShoppingListFromPlan = () => {
                                         type="button"
                                         :data-test="`meal-slot-${day.key}-${mealType.toLowerCase()}`"
                                         class="w-full rounded-md border border-dashed border-border px-2 py-3 text-left text-xs text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
-                                        @click="openAssignment(day.key, mealType, day.label)"
+                                        @click="
+                                            openAssignment(
+                                                day.key,
+                                                mealType,
+                                                day.label,
+                                            )
+                                        "
                                     >
                                         No meal yet
                                     </button>
 
                                     <div
-                                        v-for="meal in getMealsForDay(day.key, mealType)"
+                                        v-for="meal in getMealsForDay(
+                                            day.key,
+                                            mealType,
+                                        )"
                                         :key="meal.id"
                                         class="rounded-md border border-border/70 text-left text-sm transition hover:border-primary/40"
                                     >
@@ -379,12 +367,24 @@ const createShoppingListFromPlan = () => {
                                             type="button"
                                             class="w-full px-3 py-2 text-left"
                                             :data-test="`meal-item-${meal.id}`"
-                                            @click="openEditAssignment(meal, day.key, mealType, day.label)"
+                                            @click="
+                                                openEditAssignment(
+                                                    meal,
+                                                    day.key,
+                                                    mealType,
+                                                    day.label,
+                                                )
+                                            "
                                         >
                                             <p class="font-medium">
-                                                {{ meal.recipe?.name ?? 'Recipe' }}
+                                                {{
+                                                    meal.recipe?.name ??
+                                                    'Recipe'
+                                                }}
                                             </p>
-                                            <p class="text-xs text-muted-foreground">
+                                            <p
+                                                class="text-xs text-muted-foreground"
+                                            >
                                                 Servings: {{ meal.servings }}
                                             </p>
                                         </button>
@@ -402,19 +402,25 @@ const createShoppingListFromPlan = () => {
                 </CardHeader>
                 <CardContent class="grid gap-4 md:grid-cols-3">
                     <div class="rounded-lg border border-border/70 p-4">
-                        <p class="text-sm text-muted-foreground">Meals planned</p>
+                        <p class="text-sm text-muted-foreground">
+                            Meals planned
+                        </p>
                         <p class="text-2xl font-semibold">
                             {{ mealPlanRecipes.length }}
                         </p>
                     </div>
                     <div class="rounded-lg border border-border/70 p-4">
-                        <p class="text-sm text-muted-foreground">Recipes unique</p>
+                        <p class="text-sm text-muted-foreground">
+                            Recipes unique
+                        </p>
                         <p class="text-2xl font-semibold">
                             {{ uniqueRecipeCount }}
                         </p>
                     </div>
                     <div class="rounded-lg border border-border/70 p-4">
-                        <p class="text-sm text-muted-foreground">Shopping list</p>
+                        <p class="text-sm text-muted-foreground">
+                            Shopping list
+                        </p>
                         <p class="text-2xl font-semibold">
                             {{ mealPlan.shopping_list ? 'Ready' : 'Draft' }}
                         </p>
@@ -464,7 +470,7 @@ const createShoppingListFromPlan = () => {
                             name="recipe_id"
                             v-model="form.recipe_id"
                             @change="shouldSyncServings = true"
-                            class="border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                         >
                             <option value="">Select a recipe</option>
                             <option

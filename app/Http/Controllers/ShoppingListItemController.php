@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnsuresOwnership;
 use App\Http\Requests\ShoppingListItems\StoreShoppingListItemRequest;
 use App\Http\Requests\ShoppingListItems\UpdateShoppingListItemRequest;
 use App\Http\Resources\IngredientResource;
@@ -18,6 +19,8 @@ use Inertia\Response as InertiaResponse;
 
 class ShoppingListItemController extends Controller
 {
+    use EnsuresOwnership;
+
     public function index(Request $request): InertiaResponse
     {
         $items = ShoppingListItem::query()
@@ -62,7 +65,7 @@ class ShoppingListItemController extends Controller
 
     public function show(Request $request, ShoppingListItem $shoppingListItem): InertiaResponse
     {
-        $this->ensureShoppingListItemOwner($request, $shoppingListItem);
+        $this->ensureOwnership($request, $shoppingListItem, throughRelationship: 'shoppingList');
 
         return Inertia::render('shopping-list-items/Show', [
             'item' => ShoppingListItemResource::make($shoppingListItem->load('ingredient')),
@@ -71,7 +74,7 @@ class ShoppingListItemController extends Controller
 
     public function edit(Request $request, ShoppingListItem $shoppingListItem): InertiaResponse
     {
-        $this->ensureShoppingListItemOwner($request, $shoppingListItem);
+        $this->ensureOwnership($request, $shoppingListItem, throughRelationship: 'shoppingList');
 
         $shoppingLists = ShoppingList::query()
             ->where('user_id', $request->user()->id)
@@ -93,7 +96,7 @@ class ShoppingListItemController extends Controller
         UpdateShoppingListItemRequest $request,
         ShoppingListItem $shoppingListItem
     ): RedirectResponse {
-        $this->ensureShoppingListItemOwner($request, $shoppingListItem);
+        $this->ensureOwnership($request, $shoppingListItem, throughRelationship: 'shoppingList');
 
         $data = $request->validated();
 
@@ -110,7 +113,7 @@ class ShoppingListItemController extends Controller
 
     public function destroy(Request $request, ShoppingListItem $shoppingListItem): RedirectResponse
     {
-        $this->ensureShoppingListItemOwner($request, $shoppingListItem);
+        $this->ensureOwnership($request, $shoppingListItem, throughRelationship: 'shoppingList');
 
         $shoppingListItem->delete();
 
@@ -123,14 +126,5 @@ class ShoppingListItemController extends Controller
             ->whereKey($shoppingListId)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
-    }
-
-    protected function ensureShoppingListItemOwner(Request $request, ShoppingListItem $shoppingListItem): void
-    {
-        $shoppingListItem->loadMissing('shoppingList');
-
-        if ($shoppingListItem->shoppingList->user_id !== $request->user()->id) {
-            abort(404);
-        }
     }
 }

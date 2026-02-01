@@ -27,6 +27,43 @@ export function toUrl(href: NonNullable<InertiaLinkProps['href']>) {
 }
 
 /**
+ * Extract the XSRF-TOKEN value from document.cookie.
+ */
+export function getXsrfToken(): string {
+    return decodeURIComponent(
+        document.cookie
+            .split('; ')
+            .find((row) => row.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1] ?? '',
+    );
+}
+
+/**
+ * Fetch wrapper that automatically sets JSON headers and the X-XSRF-TOKEN cookie.
+ * Returns the raw Response so callers can handle redirects, status codes, etc.
+ */
+export async function apiFetch(
+    url: string,
+    options: RequestInit = {},
+): Promise<Response> {
+    const headers = new Headers(options.headers);
+
+    if (!headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+    }
+    if (!headers.has('Accept')) {
+        headers.set('Accept', 'application/json');
+    }
+    headers.set('X-XSRF-TOKEN', getXsrfToken());
+
+    return fetch(url, {
+        ...options,
+        headers,
+        credentials: options.credentials ?? 'same-origin',
+    });
+}
+
+/**
  * Format a date string to a short readable format (e.g., "Jan 15").
  * Returns empty string for null/undefined, or the original value if unparseable.
  */

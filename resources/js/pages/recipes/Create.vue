@@ -7,24 +7,11 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
 import { create, index as recipesIndex, store } from '@/routes/recipes';
 import { type BreadcrumbItem } from '@/types';
+import type { GroceryStore, Ingredient } from '@/types/models';
 
 import RecipeForm from './Partials/RecipeForm.vue';
 
-interface IngredientOption {
-    id: number;
-    name: string;
-}
-
-interface GroceryStoreSection {
-    id: number;
-    name: string;
-}
-
-interface GroceryStore {
-    id: number;
-    name: string;
-    sections?: GroceryStoreSection[];
-}
+type IngredientOption = Pick<Ingredient, 'id' | 'name'>;
 
 const props = defineProps<{
     ingredients: ResourceProp<IngredientOption[]>;

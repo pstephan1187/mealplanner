@@ -9,36 +9,41 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import {
+    destroy as destroyStore,
+    edit,
+    index as groceryStoresIndex,
+    show,
+} from '@/routes/grocery-stores';
+import {
+    destroy as destroySection,
+    store as storeSection,
+} from '@/routes/grocery-stores/sections';
 import { type BreadcrumbItem } from '@/types';
-
-interface GroceryStoreSection {
-    id: number;
-    name: string;
-    sort_order: number;
-}
-
-interface GroceryStore {
-    id: number;
-    name: string;
-    sections?: GroceryStoreSection[];
-}
+import type { GroceryStore } from '@/types/models';
 
 const props = defineProps<{
     groceryStore: GroceryStore;
 }>();
 
-const groceryStoresIndex = () => ({ url: '/grocery-stores' });
-const edit = (store: { id: number }) => ({ url: `/grocery-stores/${store.id}/edit` });
-const storeSection = { form: () => ({ action: `/grocery-stores/${props.groceryStore.id}/sections`, method: 'post' }) };
 const deleteStore = () => {
-    if (confirm('Are you sure you want to delete this store? This will also remove it from any ingredients.')) {
-        router.delete(`/grocery-stores/${props.groceryStore.id}`);
+    if (
+        confirm(
+            'Are you sure you want to delete this store? This will also remove it from any ingredients.',
+        )
+    ) {
+        router.delete(destroyStore(props.groceryStore.id).url);
     }
 };
 
 const deleteSection = (sectionId: number) => {
     if (confirm('Are you sure you want to delete this section?')) {
-        router.delete(`/grocery-stores/${props.groceryStore.id}/sections/${sectionId}`);
+        router.delete(
+            destroySection({
+                grocery_store: props.groceryStore.id,
+                section: sectionId,
+            }).url,
+        );
     }
 };
 
@@ -49,7 +54,7 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     },
     {
         title: props.groceryStore.name,
-        href: `/grocery-stores/${props.groceryStore.id}`,
+        href: show(props.groceryStore.id).url,
     },
 ]);
 
@@ -74,7 +79,7 @@ const newSectionName = ref('');
                         <Link :href="groceryStoresIndex()">Back to stores</Link>
                     </Button>
                     <Button variant="outline" as-child>
-                        <Link :href="edit(groceryStore)">Edit</Link>
+                        <Link :href="edit(groceryStore.id)">Edit</Link>
                     </Button>
                     <Button variant="destructive" @click="deleteStore">
                         Delete
@@ -89,7 +94,7 @@ const newSectionName = ref('');
                     </CardHeader>
                     <CardContent>
                         <Form
-                            v-bind="storeSection.form()"
+                            v-bind="storeSection.form(groceryStore.id)"
                             class="space-y-4"
                             v-slot="{ errors, processing }"
                             @success="newSectionName = ''"

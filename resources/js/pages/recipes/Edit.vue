@@ -7,49 +7,11 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
 import { edit, index as recipesIndex, update } from '@/routes/recipes';
 import { type BreadcrumbItem } from '@/types';
+import type { GroceryStore, Ingredient, Recipe } from '@/types/models';
 
 import RecipeForm from './Partials/RecipeForm.vue';
 
-interface IngredientOption {
-    id: number;
-    name: string;
-}
-
-interface GroceryStoreSection {
-    id: number;
-    name: string;
-}
-
-interface GroceryStore {
-    id: number;
-    name: string;
-    sections?: GroceryStoreSection[];
-}
-
-interface RecipeIngredientPivot {
-    quantity: string | number;
-    unit: string;
-    note?: string | null;
-}
-
-interface RecipeIngredient {
-    id: number;
-    name: string;
-    pivot?: RecipeIngredientPivot | null;
-}
-
-interface Recipe {
-    id: number;
-    name: string;
-    instructions: string;
-    servings: number;
-    flavor_profile: string;
-    meal_types?: string[];
-    photo_url?: string | null;
-    prep_time_minutes?: number | null;
-    cook_time_minutes?: number | null;
-    ingredients?: RecipeIngredient[];
-}
+type IngredientOption = Pick<Ingredient, 'id' | 'name'>;
 
 const props = defineProps<{
     recipe: ResourceProp<Recipe>;

@@ -3,12 +3,7 @@ import { Form, Head, Link } from '@inertiajs/vue3';
 
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -21,23 +16,14 @@ import {
 } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
-import { destroy, edit, index as mealPlanRecipesIndex, show } from '@/routes/meal-plan-recipes';
+import {
+    destroy,
+    edit,
+    index as mealPlanRecipesIndex,
+    show,
+} from '@/routes/meal-plan-recipes';
 import { type BreadcrumbItem } from '@/types';
-
-interface Recipe {
-    id: number;
-    name: string;
-}
-
-interface MealPlanRecipe {
-    id: number;
-    meal_plan_id: number;
-    recipe_id: number;
-    date: string;
-    meal_type: string;
-    servings: number;
-    recipe?: Recipe | null;
-}
+import type { MealPlanRecipe } from '@/types/models';
 
 const props = defineProps<{
     mealPlanRecipe: ResourceProp<MealPlanRecipe>;
@@ -71,7 +57,9 @@ const breadcrumbs: BreadcrumbItem[] = [
                 />
                 <div class="flex flex-wrap gap-2">
                     <Button variant="secondary" as-child>
-                        <Link :href="edit(mealPlanRecipe.id)">Edit assignment</Link>
+                        <Link :href="edit(mealPlanRecipe.id)"
+                            >Edit assignment</Link
+                        >
                     </Button>
                     <Dialog>
                         <DialogTrigger as-child>
@@ -118,9 +106,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                     <CardTitle>Assignment details</CardTitle>
                 </CardHeader>
                 <CardContent class="space-y-2 text-sm text-muted-foreground">
-                    <p>
-                        Meal type: {{ mealPlanRecipe.meal_type }}
-                    </p>
+                    <p>Meal type: {{ mealPlanRecipe.meal_type }}</p>
                     <p>Date: {{ mealPlanRecipe.date }}</p>
                     <p>Servings: {{ mealPlanRecipe.servings }}</p>
                 </CardContent>

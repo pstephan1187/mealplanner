@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
 import InputError from '@/components/InputError.vue';
+import SectionCreationModal from '@/components/SectionCreationModal.vue';
+import StoreCreationModal from '@/components/StoreCreationModal.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,49 +20,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useRecipeIngredientModals } from '@/composables/useRecipeIngredientModals';
 import { MEAL_TYPES } from '@/lib/constants';
-import { storeQuick } from '@/actions/App/Http/Controllers/IngredientController';
+import type { GroceryStore, Ingredient, Recipe } from '@/types/models';
 
-interface IngredientOption {
-    id: number;
-    name: string;
-}
-
-interface GroceryStoreSection {
-    id: number;
-    name: string;
-}
-
-interface GroceryStore {
-    id: number;
-    name: string;
-    sections?: GroceryStoreSection[];
-}
-
-interface RecipeIngredientPivot {
-    quantity: string | number;
-    unit: string;
-    note?: string | null;
-}
-
-interface RecipeIngredient {
-    id: number;
-    name: string;
-    pivot?: RecipeIngredientPivot | null;
-}
-
-interface Recipe {
-    id: number;
-    name: string;
-    instructions: string;
-    servings: number;
-    flavor_profile: string;
-    meal_types?: string[];
-    photo_url?: string | null;
-    prep_time_minutes?: number | null;
-    cook_time_minutes?: number | null;
-    ingredients?: RecipeIngredient[];
-}
+type IngredientOption = Pick<Ingredient, 'id' | 'name'>;
 
 interface IngredientRow {
     ingredient_id: number | '';
@@ -83,45 +47,37 @@ const selectedMealTypes = computed(() => props.recipe?.meal_types ?? []);
 const localIngredients = ref<ComboboxOption[]>([...props.ingredients]);
 const localStores = ref<GroceryStore[]>([...props.groceryStores]);
 
-// Ingredient creation modal state
-const showIngredientModal = ref(false);
-const ingredientModalRowIndex = ref<number | null>(null);
-const newIngredientName = ref('');
-const newIngredientStoreId = ref<number | string>('');
-const newIngredientSectionId = ref<number | string>('');
-const ingredientModalLoading = ref(false);
+// Ingredient creation modal + store/section selection (via composable)
+const {
+    showIngredientModal,
+    newIngredientName,
+    ingredientModalLoading,
+    openIngredientModal,
+    createIngredient,
+    newIngredientStoreId,
+    newIngredientSectionId,
+    storeOptions,
+    sectionOptions,
+    showStoreModal,
+    showSectionModal,
+    prefillStoreName,
+    prefillSectionName,
+    openStoreModal,
+    openSectionModal,
+    handleStoreCreated,
+    handleSectionCreated,
+} = useRecipeIngredientModals(localStores, {
+    onIngredientCreated: (ingredient, rowIndex) => {
+        localIngredients.value.push({
+            id: ingredient.id,
+            name: ingredient.name,
+        });
+        localIngredients.value.sort((a, b) => a.name.localeCompare(b.name));
 
-// Store creation modal state
-const showStoreModal = ref(false);
-const newStoreName = ref('');
-const newStoreSections = ref<string[]>(['']);
-const storeModalLoading = ref(false);
-
-// Section creation modal state
-const showSectionModal = ref(false);
-const newSectionName = ref('');
-const sectionModalLoading = ref(false);
-
-const storeOptions = computed(() =>
-    localStores.value.map((s) => ({ id: s.id, name: s.name })),
-);
-
-const availableSections = computed(() => {
-    if (!newIngredientStoreId.value) return [];
-    const store = localStores.value.find(
-        (s) => s.id === Number(newIngredientStoreId.value),
-    );
-    return store?.sections ?? [];
-});
-
-const sectionOptions = computed(() =>
-    availableSections.value.map((s) => ({ id: s.id, name: s.name })),
-);
-
-watch(newIngredientStoreId, (newVal, oldVal) => {
-    if (newVal !== oldVal) {
-        newIngredientSectionId.value = '';
-    }
+        if (rowIndex !== null) {
+            ingredientRows.value[rowIndex].ingredient_id = ingredient.id;
+        }
+    },
 });
 
 const ingredientRows = ref<IngredientRow[]>(
@@ -167,180 +123,6 @@ const handlePhotoChange = (event: Event) => {
     photoObjectUrl = URL.createObjectURL(file);
     photoPreview.value = photoObjectUrl;
 };
-
-function getXsrfToken(): string {
-    return decodeURIComponent(
-        document.cookie
-            .split('; ')
-            .find((row) => row.startsWith('XSRF-TOKEN='))
-            ?.split('=')[1] ?? '',
-    );
-}
-
-function openIngredientModal(name: string, rowIndex: number) {
-    newIngredientName.value = name;
-    newIngredientStoreId.value = '';
-    newIngredientSectionId.value = '';
-    ingredientModalRowIndex.value = rowIndex;
-    showIngredientModal.value = true;
-}
-
-async function createIngredient() {
-    if (!newIngredientName.value.trim()) return;
-
-    ingredientModalLoading.value = true;
-    try {
-        const response = await fetch(storeQuick.url(), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-XSRF-TOKEN': getXsrfToken(),
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-                name: newIngredientName.value.trim(),
-                grocery_store_id: newIngredientStoreId.value || null,
-                grocery_store_section_id: newIngredientSectionId.value || null,
-            }),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Failed to create ingredient:', errorData);
-            return;
-        }
-
-        const data = await response.json();
-        const newIngredient = data.ingredient;
-
-        localIngredients.value.push({
-            id: newIngredient.id,
-            name: newIngredient.name,
-        });
-
-        localIngredients.value.sort((a, b) => a.name.localeCompare(b.name));
-
-        if (ingredientModalRowIndex.value !== null) {
-            ingredientRows.value[ingredientModalRowIndex.value].ingredient_id =
-                newIngredient.id;
-        }
-
-        showIngredientModal.value = false;
-    } catch (error) {
-        console.error('Error creating ingredient:', error);
-    } finally {
-        ingredientModalLoading.value = false;
-    }
-}
-
-function openStoreModal(prefillName?: string) {
-    newStoreName.value = prefillName || '';
-    newStoreSections.value = [''];
-    showStoreModal.value = true;
-}
-
-function addSectionInput() {
-    newStoreSections.value.push('');
-}
-
-function removeSectionInput(index: number) {
-    newStoreSections.value.splice(index, 1);
-}
-
-async function createStore() {
-    if (!newStoreName.value.trim()) return;
-
-    storeModalLoading.value = true;
-    try {
-        const sections = newStoreSections.value
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0);
-
-        const response = await fetch('/grocery-stores/quick', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-XSRF-TOKEN': getXsrfToken(),
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-                name: newStoreName.value.trim(),
-                sections: sections,
-            }),
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            const newStore: GroceryStore = {
-                id: data.grocery_store.id,
-                name: data.grocery_store.name,
-                sections: data.grocery_store.sections || [],
-            };
-            localStores.value = [...localStores.value, newStore].sort((a, b) =>
-                a.name.localeCompare(b.name),
-            );
-            newIngredientStoreId.value = newStore.id;
-            showStoreModal.value = false;
-        }
-    } finally {
-        storeModalLoading.value = false;
-    }
-}
-
-function openSectionModal(prefillName?: string) {
-    newSectionName.value = prefillName || '';
-    showSectionModal.value = true;
-}
-
-async function createSection() {
-    if (!newSectionName.value.trim() || !newIngredientStoreId.value) return;
-
-    sectionModalLoading.value = true;
-    try {
-        const response = await fetch(
-            `/grocery-stores/${newIngredientStoreId.value}/sections/quick`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-XSRF-TOKEN': getXsrfToken(),
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    name: newSectionName.value.trim(),
-                }),
-            },
-        );
-
-        if (response.ok) {
-            const data = await response.json();
-            const newSection: GroceryStoreSection = {
-                id: data.section.id,
-                name: data.section.name,
-            };
-
-            localStores.value = localStores.value.map((store) => {
-                if (store.id === Number(newIngredientStoreId.value)) {
-                    return {
-                        ...store,
-                        sections: [...(store.sections || []), newSection].sort(
-                            (a, b) => a.name.localeCompare(b.name),
-                        ),
-                    };
-                }
-                return store;
-            });
-
-            newIngredientSectionId.value = newSection.id;
-            showSectionModal.value = false;
-        }
-    } finally {
-        sectionModalLoading.value = false;
-    }
-}
 
 onBeforeUnmount(() => {
     if (photoObjectUrl) {
@@ -408,7 +190,7 @@ onBeforeUnmount(() => {
                         :src="photoPreview"
                         alt="Recipe photo preview"
                         class="size-full object-cover"
-                    >
+                    />
                     <span v-else>Square preview</span>
                 </div>
                 <div class="grid gap-2">
@@ -418,9 +200,9 @@ onBeforeUnmount(() => {
                         name="photo"
                         type="file"
                         accept="image/*"
-                        class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                        class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30"
                         @change="handlePhotoChange"
-                    >
+                    />
                     <p class="text-sm text-muted-foreground">
                         Use a square photo up to 2048x2048 pixels.
                     </p>
@@ -459,7 +241,9 @@ onBeforeUnmount(() => {
 
                 <div class="grid gap-6 md:grid-cols-2">
                     <div class="grid gap-2">
-                        <Label for="prep_time_minutes">Prep time (minutes)</Label>
+                        <Label for="prep_time_minutes"
+                            >Prep time (minutes)</Label
+                        >
                         <Input
                             id="prep_time_minutes"
                             name="prep_time_minutes"
@@ -471,7 +255,9 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="cook_time_minutes">Cook time (minutes)</Label>
+                        <Label for="cook_time_minutes"
+                            >Cook time (minutes)</Label
+                        >
                         <Input
                             id="cook_time_minutes"
                             name="cook_time_minutes"
@@ -608,7 +394,8 @@ onBeforeUnmount(() => {
                 <DialogHeader>
                     <DialogTitle>Create ingredient</DialogTitle>
                     <DialogDescription>
-                        Add a new ingredient and optionally assign it to a store.
+                        Add a new ingredient and optionally assign it to a
+                        store.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -654,7 +441,9 @@ onBeforeUnmount(() => {
                     </DialogClose>
                     <Button
                         @click="createIngredient"
-                        :disabled="ingredientModalLoading || !newIngredientName.trim()"
+                        :disabled="
+                            ingredientModalLoading || !newIngredientName.trim()
+                        "
                     >
                         Create ingredient
                     </Button>
@@ -662,107 +451,18 @@ onBeforeUnmount(() => {
             </DialogContent>
         </Dialog>
 
-        <!-- Store Creation Modal -->
-        <Dialog v-model:open="showStoreModal">
-            <DialogContent class="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Create grocery store</DialogTitle>
-                    <DialogDescription>
-                        Add a new store and optionally define its sections.
-                    </DialogDescription>
-                </DialogHeader>
+        <!-- Store & Section Creation Modals -->
+        <StoreCreationModal
+            v-model:open="showStoreModal"
+            :prefill-name="prefillStoreName"
+            @store-created="handleStoreCreated"
+        />
 
-                <div class="space-y-4 py-4">
-                    <div class="grid gap-2">
-                        <Label for="store-name">Store name</Label>
-                        <Input
-                            id="store-name"
-                            v-model="newStoreName"
-                            placeholder="Whole Foods"
-                        />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label>Sections (optional)</Label>
-                        <div class="space-y-2">
-                            <div
-                                v-for="(_, index) in newStoreSections"
-                                :key="index"
-                                class="flex gap-2"
-                            >
-                                <Input
-                                    v-model="newStoreSections[index]"
-                                    placeholder="e.g., Produce, Dairy, Bakery"
-                                />
-                                <Button
-                                    v-if="newStoreSections.length > 1"
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    @click="removeSectionInput(index)"
-                                >
-                                    ×
-                                </Button>
-                            </div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                @click="addSectionInput"
-                            >
-                                Add section
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                <DialogFooter class="gap-2">
-                    <DialogClose as-child>
-                        <Button variant="secondary">Cancel</Button>
-                    </DialogClose>
-                    <Button
-                        @click="createStore"
-                        :disabled="storeModalLoading || !newStoreName.trim()"
-                    >
-                        Create store
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
-        <!-- Section Creation Modal -->
-        <Dialog v-model:open="showSectionModal">
-            <DialogContent class="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Create section</DialogTitle>
-                    <DialogDescription>
-                        Add a new section to the selected store.
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div class="space-y-4 py-4">
-                    <div class="grid gap-2">
-                        <Label for="section-name">Section name</Label>
-                        <Input
-                            id="section-name"
-                            v-model="newSectionName"
-                            placeholder="e.g., Produce"
-                        />
-                    </div>
-                </div>
-
-                <DialogFooter class="gap-2">
-                    <DialogClose as-child>
-                        <Button variant="secondary">Cancel</Button>
-                    </DialogClose>
-                    <Button
-                        @click="createSection"
-                        :disabled="sectionModalLoading || !newSectionName.trim()"
-                    >
-                        Create section
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <SectionCreationModal
+            v-model:open="showSectionModal"
+            :store-id="newIngredientStoreId"
+            :prefill-name="prefillSectionName"
+            @section-created="handleSectionCreated"
+        />
     </div>
 </template>

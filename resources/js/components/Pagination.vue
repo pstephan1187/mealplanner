@@ -39,11 +39,7 @@ const shouldShow = computed(() => {
 </script>
 
 <template>
-    <nav
-        v-if="shouldShow"
-        class="flex flex-wrap gap-2"
-        aria-label="Pagination"
-    >
+    <nav v-if="shouldShow" class="flex flex-wrap gap-2" aria-label="Pagination">
         <template v-for="link in decodedLinks" :key="link.label">
             <Link
                 v-if="link.url"

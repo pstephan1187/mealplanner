@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnsuresOwnership;
 use App\Http\Requests\GroceryStores\StoreGroceryStoreRequest;
 use App\Http\Requests\GroceryStores\UpdateGroceryStoreRequest;
 use App\Http\Resources\GroceryStoreResource;
@@ -14,6 +15,8 @@ use Inertia\Response as InertiaResponse;
 
 class GroceryStoreController extends Controller
 {
+    use EnsuresOwnership;
+
     public function index(Request $request): InertiaResponse
     {
         $stores = GroceryStore::query()
@@ -66,7 +69,7 @@ class GroceryStoreController extends Controller
 
     public function show(Request $request, GroceryStore $groceryStore): InertiaResponse
     {
-        $this->ensureStoreOwner($request, $groceryStore);
+        $this->ensureOwnership($request, $groceryStore);
 
         $groceryStore->load('sections');
 
@@ -77,7 +80,7 @@ class GroceryStoreController extends Controller
 
     public function edit(Request $request, GroceryStore $groceryStore): InertiaResponse
     {
-        $this->ensureStoreOwner($request, $groceryStore);
+        $this->ensureOwnership($request, $groceryStore);
 
         return Inertia::render('grocery-stores/Edit', [
             'groceryStore' => GroceryStoreResource::make($groceryStore),
@@ -86,7 +89,7 @@ class GroceryStoreController extends Controller
 
     public function update(UpdateGroceryStoreRequest $request, GroceryStore $groceryStore): RedirectResponse
     {
-        $this->ensureStoreOwner($request, $groceryStore);
+        $this->ensureOwnership($request, $groceryStore);
 
         $groceryStore->update($request->validated());
 
@@ -95,17 +98,10 @@ class GroceryStoreController extends Controller
 
     public function destroy(Request $request, GroceryStore $groceryStore): RedirectResponse
     {
-        $this->ensureStoreOwner($request, $groceryStore);
+        $this->ensureOwnership($request, $groceryStore);
 
         $groceryStore->delete();
 
         return redirect()->route('grocery-stores.index');
-    }
-
-    protected function ensureStoreOwner(Request $request, GroceryStore $groceryStore): void
-    {
-        if ($groceryStore->user_id !== $request->user()->id) {
-            abort(404);
-        }
     }
 }

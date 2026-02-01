@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatDateShort } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import {
     create as createMealPlan,
@@ -19,24 +20,14 @@ import {
     index as recipesIndex,
     show as showRecipe,
 } from '@/routes/recipes';
-import { create as createShoppingList, index as shoppingListsIndex } from '@/routes/shopping-lists';
+import { create as createShoppingList } from '@/routes/shopping-lists';
 import { type BreadcrumbItem } from '@/types';
-
-interface Recipe {
-    id: number;
-    name: string;
-    meal_types?: string[];
-    photo_url?: string | null;
-}
-
-interface MealPlan {
-    id: number;
-    name: string;
-    start_date?: string | null;
-    end_date?: string | null;
-}
-
-type ResourceCollection<T> = { data: T[] } | T[];
+import {
+    resolveCollection,
+    type MealPlan,
+    type Recipe,
+    type ResourceCollection,
+} from '@/types/models';
 
 interface Props {
     stats: {
@@ -57,34 +48,11 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const recentRecipes = computed(() =>
-    Array.isArray(props.recentRecipes)
-        ? props.recentRecipes
-        : props.recentRecipes.data ?? [],
-);
+const recentRecipes = computed(() => resolveCollection(props.recentRecipes));
 
 const recentMealPlans = computed(() =>
-    Array.isArray(props.recentMealPlans)
-        ? props.recentMealPlans
-        : props.recentMealPlans.data ?? [],
+    resolveCollection(props.recentMealPlans),
 );
-
-const formatDate = (value?: string | null): string => {
-    if (!value) {
-        return '';
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return value;
-    }
-
-    return date.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-    });
-};
 </script>
 
 <template>
@@ -101,9 +69,7 @@ const formatDate = (value?: string | null): string => {
                 />
                 <div class="flex flex-wrap gap-2">
                     <Button variant="secondary" as-child>
-                        <Link :href="recipesIndex()">
-                            Browse recipes
-                        </Link>
+                        <Link :href="recipesIndex()"> Browse recipes </Link>
                     </Button>
                     <Button as-child>
                         <Link :href="createMealPlan()">
@@ -176,9 +142,7 @@ const formatDate = (value?: string | null): string => {
                     <CardContent class="flex items-center justify-between">
                         <Badge variant="secondary">Prep ready</Badge>
                         <Button variant="ghost" size="sm" as-child>
-                            <Link :href="createShoppingList()">
-                                New list
-                            </Link>
+                            <Link :href="createShoppingList()"> New list </Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -186,7 +150,9 @@ const formatDate = (value?: string | null): string => {
 
             <div class="grid gap-6 lg:grid-cols-2">
                 <Card>
-                    <CardHeader class="flex flex-row items-center justify-between">
+                    <CardHeader
+                        class="flex flex-row items-center justify-between"
+                    >
                         <CardTitle>Recent recipes</CardTitle>
                         <Button variant="ghost" size="sm" as-child>
                             <Link :href="recipesIndex()">View all</Link>
@@ -206,14 +172,14 @@ const formatDate = (value?: string | null): string => {
                         >
                             <div class="flex items-center gap-4">
                                 <div
-                                    class="flex size-12 items-center justify-center overflow-hidden rounded-lg bg-muted text-xs font-semibold uppercase text-muted-foreground"
+                                    class="flex size-12 items-center justify-center overflow-hidden rounded-lg bg-muted text-xs font-semibold text-muted-foreground uppercase"
                                 >
                                     <img
                                         v-if="recipe.photo_url"
                                         :src="recipe.photo_url"
                                         :alt="recipe.name"
                                         class="size-full object-cover"
-                                    >
+                                    />
                                     <span v-else>
                                         {{ recipe.name.slice(0, 2) }}
                                     </span>
@@ -244,7 +210,9 @@ const formatDate = (value?: string | null): string => {
                 </Card>
 
                 <Card>
-                    <CardHeader class="flex flex-row items-center justify-between">
+                    <CardHeader
+                        class="flex flex-row items-center justify-between"
+                    >
                         <CardTitle>Recent meal plans</CardTitle>
                         <Button variant="ghost" size="sm" as-child>
                             <Link :href="mealPlansIndex()">View all</Link>
@@ -255,8 +223,7 @@ const formatDate = (value?: string | null): string => {
                             v-if="recentMealPlans.length === 0"
                             class="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground"
                         >
-                            No meal plans yet. Start a week plan to see it
-                            here.
+                            No meal plans yet. Start a week plan to see it here.
                         </div>
                         <div
                             v-for="mealPlan in recentMealPlans"
@@ -268,13 +235,15 @@ const formatDate = (value?: string | null): string => {
                                     {{ mealPlan.name }}
                                 </p>
                                 <p class="text-sm text-muted-foreground">
-                                    {{ formatDate(mealPlan.start_date) }}
+                                    {{ formatDateShort(mealPlan.start_date) }}
                                     <span v-if="mealPlan.end_date">-</span>
-                                    {{ formatDate(mealPlan.end_date) }}
+                                    {{ formatDateShort(mealPlan.end_date) }}
                                 </p>
                             </div>
                             <Button variant="ghost" size="sm" as-child>
-                                <Link :href="showMealPlan(mealPlan.id)">View</Link>
+                                <Link :href="showMealPlan(mealPlan.id)"
+                                    >View</Link
+                                >
                             </Button>
                         </div>
                     </CardContent>

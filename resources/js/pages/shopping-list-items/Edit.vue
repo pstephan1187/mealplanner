@@ -5,40 +5,25 @@ import { computed, ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
-import { edit, index as shoppingListItemsIndex, update } from '@/routes/shopping-list-items';
+import {
+    edit,
+    index as shoppingListItemsIndex,
+    update,
+} from '@/routes/shopping-list-items';
 import { type BreadcrumbItem } from '@/types';
-
-interface ShoppingList {
-    id: number;
-}
-
-interface Ingredient {
-    id: number;
-    name: string;
-}
-
-interface ShoppingListItem {
-    id: number;
-    shopping_list_id: number;
-    ingredient_id: number;
-    quantity: string | number;
-    unit: string;
-    is_purchased: boolean;
-    sort_order?: number | null;
-}
-
-type ResourceCollection<T> = { data: T[] } | T[];
+import {
+    resolveCollection,
+    type Ingredient,
+    type ResourceCollection,
+    type ShoppingList,
+    type ShoppingListItem,
+} from '@/types/models';
 
 const props = defineProps<{
     item: ResourceProp<ShoppingListItem>;
@@ -60,19 +45,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const shoppingListOptions = computed(() =>
-    Array.isArray(props.shoppingLists)
-        ? props.shoppingLists
-        : props.shoppingLists.data ?? [],
+    resolveCollection(props.shoppingLists),
 );
 
-const ingredientOptions = computed(() =>
-    Array.isArray(props.ingredients)
-        ? props.ingredients
-        : props.ingredients.data ?? [],
-);
+const ingredientOptions = computed(() => resolveCollection(props.ingredients));
 
-const selectedShoppingListId = ref<number | ''>(item.shopping_list_id);
-const selectedIngredientId = ref<number | ''>(item.ingredient_id);
+const selectedShoppingListId = ref<number | ''>(item.shopping_list_id ?? '');
+const selectedIngredientId = ref<number | ''>(item.ingredient_id ?? '');
 </script>
 
 <template>
@@ -110,7 +89,7 @@ const selectedIngredientId = ref<number | ''>(item.ingredient_id);
                                 id="shopping_list_id"
                                 name="shopping_list_id"
                                 v-model="selectedShoppingListId"
-                                class="border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                             >
                                 <option value="">Choose a list</option>
                                 <option
@@ -130,7 +109,7 @@ const selectedIngredientId = ref<number | ''>(item.ingredient_id);
                                 id="ingredient_id"
                                 name="ingredient_id"
                                 v-model="selectedIngredientId"
-                                class="border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                             >
                                 <option value="">Choose ingredient</option>
                                 <option

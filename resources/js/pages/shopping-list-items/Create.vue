@@ -5,29 +5,23 @@ import { computed, ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { create, index as shoppingListItemsIndex, store } from '@/routes/shopping-list-items';
+import {
+    create,
+    index as shoppingListItemsIndex,
+    store,
+} from '@/routes/shopping-list-items';
 import { type BreadcrumbItem } from '@/types';
-
-interface ShoppingList {
-    id: number;
-}
-
-interface Ingredient {
-    id: number;
-    name: string;
-}
-
-type ResourceCollection<T> = { data: T[] } | T[];
+import {
+    resolveCollection,
+    type Ingredient,
+    type ResourceCollection,
+    type ShoppingList,
+} from '@/types/models';
 
 const props = defineProps<{
     shoppingLists: ResourceCollection<ShoppingList>;
@@ -46,16 +40,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const shoppingListOptions = computed(() =>
-    Array.isArray(props.shoppingLists)
-        ? props.shoppingLists
-        : props.shoppingLists.data ?? [],
+    resolveCollection(props.shoppingLists),
 );
 
-const ingredientOptions = computed(() =>
-    Array.isArray(props.ingredients)
-        ? props.ingredients
-        : props.ingredients.data ?? [],
-);
+const ingredientOptions = computed(() => resolveCollection(props.ingredients));
 
 const page = usePage();
 const preselectedShoppingListId = computed(() => {
@@ -106,7 +94,7 @@ const selectedShoppingListId = ref<number | ''>(
                                 id="shopping_list_id"
                                 name="shopping_list_id"
                                 v-model="selectedShoppingListId"
-                                class="border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                                 required
                             >
                                 <option value="">Choose a list</option>
@@ -126,7 +114,7 @@ const selectedShoppingListId = ref<number | ''>(
                             <select
                                 id="ingredient_id"
                                 name="ingredient_id"
-                                class="border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                                 required
                             >
                                 <option value="">Choose ingredient</option>

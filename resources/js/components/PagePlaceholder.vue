@@ -17,7 +17,9 @@ defineProps<Props>();
     <Head :title="title" />
 
     <AppLayout>
-        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+        <div
+            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
+        >
             <div class="flex flex-col gap-1">
                 <h1 class="text-xl font-semibold text-foreground">
                     {{ title }}

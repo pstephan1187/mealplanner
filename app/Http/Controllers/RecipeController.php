@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnsuresOwnership;
 use App\Http\Requests\Recipes\StoreRecipeRequest;
 use App\Http\Requests\Recipes\UpdateRecipeRequest;
 use App\Http\Resources\GroceryStoreResource;
@@ -22,6 +23,8 @@ use Spatie\Image\Image;
 
 class RecipeController extends Controller
 {
+    use EnsuresOwnership;
+
     public function index(Request $request): InertiaResponse
     {
         $recipes = Recipe::query()
@@ -77,7 +80,7 @@ class RecipeController extends Controller
 
     public function show(Request $request, Recipe $recipe): InertiaResponse
     {
-        $this->ensureRecipeOwner($request, $recipe);
+        $this->ensureOwnership($request, $recipe);
 
         return Inertia::render('recipes/Show', [
             'recipe' => RecipeResource::make($recipe->load('ingredients')),
@@ -86,7 +89,7 @@ class RecipeController extends Controller
 
     public function edit(Request $request, Recipe $recipe): InertiaResponse
     {
-        $this->ensureRecipeOwner($request, $recipe);
+        $this->ensureOwnership($request, $recipe);
 
         $ingredients = Ingredient::query()
             ->where('user_id', $request->user()->id)
@@ -108,7 +111,7 @@ class RecipeController extends Controller
 
     public function update(UpdateRecipeRequest $request, Recipe $recipe): RedirectResponse
     {
-        $this->ensureRecipeOwner($request, $recipe);
+        $this->ensureOwnership($request, $recipe);
 
         $data = $request->validated();
         $shouldSyncIngredients = array_key_exists('ingredients', $data);
@@ -131,7 +134,7 @@ class RecipeController extends Controller
 
     public function destroy(Request $request, Recipe $recipe): RedirectResponse
     {
-        $this->ensureRecipeOwner($request, $recipe);
+        $this->ensureOwnership($request, $recipe);
         $this->deletePhoto($recipe);
 
         $recipe->delete();
@@ -190,12 +193,5 @@ class RecipeController extends Controller
     protected function photoDirectory(): string
     {
         return 'recipes';
-    }
-
-    protected function ensureRecipeOwner(Request $request, Recipe $recipe): void
-    {
-        if ($recipe->user_id !== $request->user()->id) {
-            abort(404);
-        }
     }
 }

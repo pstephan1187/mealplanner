@@ -5,12 +5,7 @@ import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -25,31 +20,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
 import { destroy, edit, index as recipesIndex, show } from '@/routes/recipes';
 import { type BreadcrumbItem } from '@/types';
-
-interface RecipeIngredientPivot {
-    quantity: string | number;
-    unit: string;
-    note?: string | null;
-}
-
-interface RecipeIngredient {
-    id: number;
-    name: string;
-    pivot?: RecipeIngredientPivot | null;
-}
-
-interface Recipe {
-    id: number;
-    name: string;
-    instructions: string;
-    servings: number;
-    flavor_profile: string;
-    meal_types?: string[];
-    photo_url?: string | null;
-    prep_time_minutes?: number | null;
-    cook_time_minutes?: number | null;
-    ingredients?: RecipeIngredient[];
-}
+import type { Recipe } from '@/types/models';
 
 const props = defineProps<{
     recipe: ResourceProp<Recipe>;
@@ -69,9 +40,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const totalTime = computed(
-    () =>
-        (recipe.prep_time_minutes ?? 0) +
-        (recipe.cook_time_minutes ?? 0),
+    () => (recipe.prep_time_minutes ?? 0) + (recipe.cook_time_minutes ?? 0),
 );
 </script>
 
@@ -139,7 +108,7 @@ const totalTime = computed(
                             :src="recipe.photo_url"
                             :alt="recipe.name"
                             class="size-full object-cover"
-                        >
+                        />
                         <div
                             v-else
                             class="flex size-full items-center justify-center text-sm text-muted-foreground"
@@ -203,8 +172,7 @@ const totalTime = computed(
                                 v-if="!recipe.ingredients?.length"
                                 class="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground"
                             >
-                                No ingredients yet. Add them in the edit
-                                screen.
+                                No ingredients yet. Add them in the edit screen.
                             </div>
                             <div
                                 v-for="ingredient in recipe.ingredients"
@@ -238,7 +206,7 @@ const totalTime = computed(
                         </CardHeader>
                         <CardContent>
                             <p
-                                class="whitespace-pre-line text-sm leading-relaxed text-muted-foreground"
+                                class="text-sm leading-relaxed whitespace-pre-line text-muted-foreground"
                             >
                                 {{ recipe.instructions }}
                             </p>

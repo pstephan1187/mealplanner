@@ -5,33 +5,24 @@ import { computed, ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { MEAL_TYPES } from '@/lib/constants';
 import { formatDateShort } from '@/lib/utils';
-import { create, index as mealPlanRecipesIndex, store } from '@/routes/meal-plan-recipes';
+import {
+    create,
+    index as mealPlanRecipesIndex,
+    store,
+} from '@/routes/meal-plan-recipes';
 import { type BreadcrumbItem } from '@/types';
-
-interface MealPlan {
-    id: number;
-    name: string;
-    start_date?: string | null;
-    end_date?: string | null;
-}
-
-interface Recipe {
-    id: number;
-    name: string;
-}
-
-type ResourceCollection<T> = { data: T[] } | T[];
+import {
+    resolveCollection,
+    type MealPlan,
+    type Recipe,
+    type ResourceCollection,
+} from '@/types/models';
 
 const props = defineProps<{
     mealPlans: ResourceCollection<MealPlan>;
@@ -49,13 +40,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const mealPlanOptions = computed(() =>
-    Array.isArray(props.mealPlans) ? props.mealPlans : props.mealPlans.data ?? [],
-);
+const mealPlanOptions = computed(() => resolveCollection(props.mealPlans));
 
-const recipeOptions = computed(() =>
-    Array.isArray(props.recipes) ? props.recipes : props.recipes.data ?? [],
-);
+const recipeOptions = computed(() => resolveCollection(props.recipes));
 
 const page = usePage();
 const preselectedMealPlanId = computed(() => {
@@ -74,8 +61,9 @@ const selectedMealPlan = computed(() => {
     }
 
     return (
-        mealPlanOptions.value.find((plan) => plan.id === selectedMealPlanId.value) ??
-        null
+        mealPlanOptions.value.find(
+            (plan) => plan.id === selectedMealPlanId.value,
+        ) ?? null
     );
 });
 </script>
@@ -115,7 +103,7 @@ const selectedMealPlan = computed(() => {
                                 id="meal_plan_id"
                                 name="meal_plan_id"
                                 v-model="selectedMealPlanId"
-                                class="border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                                 required
                             >
                                 <option value="">Choose a plan</option>
@@ -138,7 +126,7 @@ const selectedMealPlan = computed(() => {
                             <select
                                 id="recipe_id"
                                 name="recipe_id"
-                                class="border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                                 required
                             >
                                 <option value="">Choose a recipe</option>
@@ -171,7 +159,7 @@ const selectedMealPlan = computed(() => {
                             <select
                                 id="meal_type"
                                 name="meal_type"
-                                class="border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                                 required
                             >
                                 <option value="">Choose meal type</option>

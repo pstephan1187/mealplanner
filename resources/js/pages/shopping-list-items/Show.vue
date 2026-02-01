@@ -3,12 +3,7 @@ import { Form, Head, Link } from '@inertiajs/vue3';
 
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -21,23 +16,14 @@ import {
 } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
-import { destroy, edit, index as shoppingListItemsIndex, show } from '@/routes/shopping-list-items';
+import {
+    destroy,
+    edit,
+    index as shoppingListItemsIndex,
+    show,
+} from '@/routes/shopping-list-items';
 import { type BreadcrumbItem } from '@/types';
-
-interface Ingredient {
-    id: number;
-    name: string;
-}
-
-interface ShoppingListItem {
-    id: number;
-    shopping_list_id: number;
-    quantity: string | number;
-    unit: string;
-    is_purchased: boolean;
-    sort_order?: number | null;
-    ingredient?: Ingredient | null;
-}
+import type { ShoppingListItem } from '@/types/models';
 
 const props = defineProps<{
     item: ResourceProp<ShoppingListItem>;
@@ -84,12 +70,10 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 class="space-y-6"
                             >
                                 <DialogHeader class="space-y-3">
-                                    <DialogTitle
-                                        >Delete this item?</DialogTitle
-                                    >
+                                    <DialogTitle>Delete this item?</DialogTitle>
                                     <DialogDescription>
-                                        This will remove the ingredient from
-                                        the shopping list.
+                                        This will remove the ingredient from the
+                                        shopping list.
                                     </DialogDescription>
                                 </DialogHeader>
 
@@ -118,9 +102,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                     <CardTitle>Item details</CardTitle>
                 </CardHeader>
                 <CardContent class="space-y-2 text-sm text-muted-foreground">
-                    <p>
-                        Quantity: {{ item.quantity }} {{ item.unit }}
-                    </p>
+                    <p>Quantity: {{ item.quantity }} {{ item.unit }}</p>
                     <p>Sort order: {{ item.sort_order ?? 'Not set' }}</p>
                     <p>
                         Purchased:

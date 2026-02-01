@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnsuresOwnership;
 use App\Http\Requests\MealPlans\StoreMealPlanRequest;
 use App\Http\Requests\MealPlans\UpdateMealPlanRequest;
 use App\Http\Resources\MealPlanResource;
@@ -16,6 +17,8 @@ use Inertia\Response as InertiaResponse;
 
 class MealPlanController extends Controller
 {
+    use EnsuresOwnership;
+
     public function index(Request $request): InertiaResponse
     {
         $mealPlans = MealPlan::query()
@@ -73,7 +76,7 @@ class MealPlanController extends Controller
 
     public function show(Request $request, MealPlan $mealPlan): InertiaResponse
     {
-        $this->ensureMealPlanOwner($request, $mealPlan);
+        $this->ensureOwnership($request, $mealPlan);
 
         $mealPlan->load([
             'mealPlanRecipes.recipe',
@@ -93,7 +96,7 @@ class MealPlanController extends Controller
 
     public function edit(Request $request, MealPlan $mealPlan): InertiaResponse
     {
-        $this->ensureMealPlanOwner($request, $mealPlan);
+        $this->ensureOwnership($request, $mealPlan);
 
         return Inertia::render('meal-plans/Edit', [
             'mealPlan' => MealPlanResource::make($mealPlan),
@@ -102,7 +105,7 @@ class MealPlanController extends Controller
 
     public function update(UpdateMealPlanRequest $request, MealPlan $mealPlan): RedirectResponse
     {
-        $this->ensureMealPlanOwner($request, $mealPlan);
+        $this->ensureOwnership($request, $mealPlan);
 
         $mealPlan->update($request->validated());
 
@@ -111,17 +114,10 @@ class MealPlanController extends Controller
 
     public function destroy(Request $request, MealPlan $mealPlan): RedirectResponse
     {
-        $this->ensureMealPlanOwner($request, $mealPlan);
+        $this->ensureOwnership($request, $mealPlan);
 
         $mealPlan->delete();
 
         return redirect()->route('meal-plans.index');
-    }
-
-    protected function ensureMealPlanOwner(Request $request, MealPlan $mealPlan): void
-    {
-        if ($mealPlan->user_id !== $request->user()->id) {
-            abort(404);
-        }
     }
 }

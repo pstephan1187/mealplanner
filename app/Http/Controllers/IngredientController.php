@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnsuresOwnership;
 use App\Http\Requests\Ingredients\StoreIngredientRequest;
 use App\Http\Requests\Ingredients\UpdateIngredientRequest;
 use App\Http\Resources\GroceryStoreResource;
@@ -16,6 +17,8 @@ use Inertia\Response as InertiaResponse;
 
 class IngredientController extends Controller
 {
+    use EnsuresOwnership;
+
     public function index(Request $request): InertiaResponse
     {
         $ingredients = Ingredient::query()
@@ -60,7 +63,7 @@ class IngredientController extends Controller
 
     public function show(Request $request, Ingredient $ingredient): InertiaResponse
     {
-        $this->ensureIngredientOwner($request, $ingredient);
+        $this->ensureOwnership($request, $ingredient);
 
         $ingredient->load(['groceryStore', 'groceryStoreSection']);
 
@@ -71,7 +74,7 @@ class IngredientController extends Controller
 
     public function edit(Request $request, Ingredient $ingredient): InertiaResponse
     {
-        $this->ensureIngredientOwner($request, $ingredient);
+        $this->ensureOwnership($request, $ingredient);
 
         $ingredient->load(['groceryStore', 'groceryStoreSection']);
 
@@ -89,7 +92,7 @@ class IngredientController extends Controller
 
     public function update(UpdateIngredientRequest $request, Ingredient $ingredient): RedirectResponse
     {
-        $this->ensureIngredientOwner($request, $ingredient);
+        $this->ensureOwnership($request, $ingredient);
 
         $ingredient->update($request->validated());
 
@@ -98,17 +101,10 @@ class IngredientController extends Controller
 
     public function destroy(Request $request, Ingredient $ingredient): RedirectResponse
     {
-        $this->ensureIngredientOwner($request, $ingredient);
+        $this->ensureOwnership($request, $ingredient);
 
         $ingredient->delete();
 
         return redirect()->route('ingredients.index');
-    }
-
-    protected function ensureIngredientOwner(Request $request, Ingredient $ingredient): void
-    {
-        if ($ingredient->user_id !== $request->user()->id) {
-            abort(404);
-        }
     }
 }

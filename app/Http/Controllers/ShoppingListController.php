@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnsuresOwnership;
 use App\Http\Requests\ShoppingLists\StoreShoppingListRequest;
 use App\Http\Requests\ShoppingLists\UpdateShoppingListItemOrderRequest;
 use App\Http\Requests\ShoppingLists\UpdateShoppingListRequest;
@@ -19,6 +20,8 @@ use Inertia\Response as InertiaResponse;
 
 class ShoppingListController extends Controller
 {
+    use EnsuresOwnership;
+
     public function index(Request $request): InertiaResponse
     {
         $shoppingLists = ShoppingList::query()
@@ -61,7 +64,7 @@ class ShoppingListController extends Controller
 
     public function show(Request $request, ShoppingList $shoppingList): InertiaResponse
     {
-        $this->ensureShoppingListOwner($request, $shoppingList);
+        $this->ensureOwnership($request, $shoppingList);
 
         $groceryStores = GroceryStore::query()
             ->where('user_id', $request->user()->id)
@@ -83,7 +86,7 @@ class ShoppingListController extends Controller
 
     public function edit(Request $request, ShoppingList $shoppingList): InertiaResponse
     {
-        $this->ensureShoppingListOwner($request, $shoppingList);
+        $this->ensureOwnership($request, $shoppingList);
 
         $mealPlans = MealPlan::query()
             ->where('user_id', $request->user()->id)
@@ -98,7 +101,7 @@ class ShoppingListController extends Controller
 
     public function update(UpdateShoppingListRequest $request, ShoppingList $shoppingList): RedirectResponse
     {
-        $this->ensureShoppingListOwner($request, $shoppingList);
+        $this->ensureOwnership($request, $shoppingList);
 
         $data = $request->validated();
 
@@ -115,7 +118,7 @@ class ShoppingListController extends Controller
 
     public function destroy(Request $request, ShoppingList $shoppingList): RedirectResponse
     {
-        $this->ensureShoppingListOwner($request, $shoppingList);
+        $this->ensureOwnership($request, $shoppingList);
 
         $shoppingList->delete();
 
@@ -126,7 +129,7 @@ class ShoppingListController extends Controller
         UpdateShoppingListItemOrderRequest $request,
         ShoppingList $shoppingList
     ): RedirectResponse {
-        $this->ensureShoppingListOwner($request, $shoppingList);
+        $this->ensureOwnership($request, $shoppingList);
 
         $items = collect($request->validated('items'));
         $itemIds = $items->pluck('id')->all();
@@ -155,13 +158,6 @@ class ShoppingListController extends Controller
             ->whereKey($mealPlanId)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
-    }
-
-    protected function ensureShoppingListOwner(Request $request, ShoppingList $shoppingList): void
-    {
-        if ($shoppingList->user_id !== $request->user()->id) {
-            abort(404);
-        }
     }
 
     protected function populateItemsFromMealPlan(ShoppingList $shoppingList, MealPlan $mealPlan): void

@@ -1,32 +1,24 @@
 <script setup lang="ts">
-import { Form, Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
+import ResourceForm from '@/components/ResourceForm.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import {
+    edit,
+    index as groceryStoresIndex,
+    show,
+    update,
+} from '@/routes/grocery-stores';
 import { type BreadcrumbItem } from '@/types';
-
-interface GroceryStore {
-    id: number;
-    name: string;
-}
+import type { GroceryStore } from '@/types/models';
 
 const props = defineProps<{
     groceryStore: GroceryStore;
 }>();
-
-const groceryStoresIndex = () => ({ url: '/grocery-stores' });
-const show = (store: { id: number }) => ({ url: `/grocery-stores/${store.id}` });
-const update = {
-    form: () => ({
-        action: `/grocery-stores/${props.groceryStore.id}`,
-        method: 'patch',
-    }),
-};
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
@@ -35,11 +27,11 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     },
     {
         title: props.groceryStore.name,
-        href: show(props.groceryStore).url,
+        href: show(props.groceryStore.id).url,
     },
     {
         title: 'Edit',
-        href: `/grocery-stores/${props.groceryStore.id}/edit`,
+        href: edit(props.groceryStore.id).url,
     },
 ]);
 </script>
@@ -48,45 +40,27 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Edit ${groceryStore.name}`" />
 
-        <div class="flex flex-col gap-8 px-6 py-8">
-            <div
-                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-                <Heading
-                    title="Edit store"
-                    description="Update the store details."
+        <ResourceForm
+            title="Edit store"
+            description="Update the store details."
+            :back-route="show(groceryStore.id).url"
+            back-label="Back to store"
+            submit-label="Update store"
+            :form-action="update.form.patch(groceryStore.id)"
+            narrow
+            #default="{ errors }"
+        >
+            <div class="grid gap-2">
+                <Label for="name">Store name</Label>
+                <Input
+                    id="name"
+                    name="name"
+                    :default-value="groceryStore.name"
+                    placeholder="Whole Foods Market"
+                    required
                 />
-                <Button variant="ghost" as-child>
-                    <Link :href="show(groceryStore)">Back to store</Link>
-                </Button>
+                <InputError :message="errors.name" />
             </div>
-
-            <Form
-                v-bind="update.form()"
-                class="max-w-xl space-y-6"
-                v-slot="{ errors, processing }"
-            >
-                <div class="grid gap-2">
-                    <Label for="name">Store name</Label>
-                    <Input
-                        id="name"
-                        name="name"
-                        :default-value="groceryStore.name"
-                        placeholder="Whole Foods Market"
-                        required
-                    />
-                    <InputError :message="errors.name" />
-                </div>
-
-                <div class="flex flex-wrap items-center gap-3">
-                    <Button variant="secondary" as-child>
-                        <Link :href="show(groceryStore)">Cancel</Link>
-                    </Button>
-                    <Button type="submit" :disabled="processing">
-                        Update store
-                    </Button>
-                </div>
-            </Form>
-        </div>
+        </ResourceForm>
     </AppLayout>
 </template>

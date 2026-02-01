@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnsuresOwnership;
 use App\Http\Requests\MealPlanRecipes\StoreMealPlanRecipeRequest;
 use App\Http\Requests\MealPlanRecipes\UpdateMealPlanRecipeRequest;
 use App\Http\Resources\MealPlanRecipeResource;
@@ -18,6 +19,8 @@ use Inertia\Response as InertiaResponse;
 
 class MealPlanRecipeController extends Controller
 {
+    use EnsuresOwnership;
+
     public function index(Request $request): InertiaResponse
     {
         $mealPlanRecipes = MealPlanRecipe::query()
@@ -69,7 +72,7 @@ class MealPlanRecipeController extends Controller
 
     public function show(Request $request, MealPlanRecipe $mealPlanRecipe): InertiaResponse
     {
-        $this->ensureMealPlanRecipeOwner($request, $mealPlanRecipe);
+        $this->ensureOwnership($request, $mealPlanRecipe, throughRelationship: 'mealPlan');
 
         return Inertia::render('meal-plan-recipes/Show', [
             'mealPlanRecipe' => MealPlanRecipeResource::make($mealPlanRecipe->load('recipe')),
@@ -78,7 +81,7 @@ class MealPlanRecipeController extends Controller
 
     public function edit(Request $request, MealPlanRecipe $mealPlanRecipe): InertiaResponse
     {
-        $this->ensureMealPlanRecipeOwner($request, $mealPlanRecipe);
+        $this->ensureOwnership($request, $mealPlanRecipe, throughRelationship: 'mealPlan');
 
         $mealPlans = MealPlan::query()
             ->where('user_id', $request->user()->id)
@@ -101,7 +104,7 @@ class MealPlanRecipeController extends Controller
         UpdateMealPlanRecipeRequest $request,
         MealPlanRecipe $mealPlanRecipe
     ): RedirectResponse {
-        $this->ensureMealPlanRecipeOwner($request, $mealPlanRecipe);
+        $this->ensureOwnership($request, $mealPlanRecipe, throughRelationship: 'mealPlan');
 
         $data = $request->validated();
 
@@ -125,7 +128,7 @@ class MealPlanRecipeController extends Controller
 
     public function destroy(Request $request, MealPlanRecipe $mealPlanRecipe): RedirectResponse
     {
-        $this->ensureMealPlanRecipeOwner($request, $mealPlanRecipe);
+        $this->ensureOwnership($request, $mealPlanRecipe, throughRelationship: 'mealPlan');
 
         $mealPlanRecipe->delete();
 
@@ -146,14 +149,5 @@ class MealPlanRecipeController extends Controller
             ->whereKey($recipeId)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
-    }
-
-    protected function ensureMealPlanRecipeOwner(Request $request, MealPlanRecipe $mealPlanRecipe): void
-    {
-        $mealPlanRecipe->loadMissing('mealPlan');
-
-        if ($mealPlanRecipe->mealPlan->user_id !== $request->user()->id) {
-            abort(404);
-        }
     }
 }

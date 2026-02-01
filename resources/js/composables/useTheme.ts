@@ -1,5 +1,6 @@
-import { computed, onMounted, ref } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
+import { computed, onMounted, ref } from 'vue';
+
 import { update } from '@/actions/App/Http/Controllers/Settings/AppearanceController';
 
 export type Theme = 'default' | 'blush-pink';

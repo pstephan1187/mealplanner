@@ -3,11 +3,11 @@ import { Link } from '@inertiajs/vue3';
 import {
     BookOpen,
     CalendarDays,
+    Carrot,
     ClipboardList,
     CookingPot,
     Folder,
     LayoutGrid,
-    Carrot,
 } from 'lucide-vue-next';
 
 import NavFooter from '@/components/NavFooter.vue';

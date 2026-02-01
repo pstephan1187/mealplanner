@@ -164,8 +164,10 @@
 
 /* Blush Pink theme - Light mode */
 .theme-blush-pink {
-    --font-sans: 'Caveat', cursive, ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans:
+        'Caveat', cursive, ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
     --background: hsl(350 70% 96%);
     --foreground: hsl(350 40% 15%);
     --card: hsl(350 60% 97%);
@@ -203,8 +205,10 @@
 
 /* Blush Pink theme - Dark mode */
 .theme-blush-pink.dark {
-    --font-sans: 'Caveat', cursive, ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans:
+        'Caveat', cursive, ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
     --background: hsl(350 40% 8%);
     --foreground: hsl(350 30% 95%);
     --card: hsl(350 40% 11%);
