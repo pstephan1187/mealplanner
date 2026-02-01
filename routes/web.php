@@ -21,14 +21,18 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+
     Route::patch('shopping-lists/{shopping_list}/items/order', [ShoppingListController::class, 'updateItemOrder'])
         ->name('shopping-lists.items.order');
+
     Route::post('ingredients/quick', [IngredientController::class, 'storeQuick'])
         ->name('ingredients.store-quick');
+
     Route::post('grocery-stores/quick', [GroceryStoreController::class, 'storeQuick'])
         ->name('grocery-stores.store-quick');
     Route::post('grocery-stores/{grocery_store}/sections/quick', [GroceryStoreSectionController::class, 'storeQuick'])
         ->name('grocery-stores.sections.store-quick');
+
     Route::resource('recipes', RecipeController::class);
     Route::resource('ingredients', IngredientController::class);
     Route::resource('grocery-stores', GroceryStoreController::class);

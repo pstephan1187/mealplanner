@@ -22,7 +22,7 @@ class IngredientController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $ingredients = Ingredient::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->with(['groceryStore', 'groceryStoreSection'])
             ->orderBy('name')
             ->paginate();
@@ -35,7 +35,7 @@ class IngredientController extends Controller
     public function create(Request $request): InertiaResponse
     {
         $groceryStores = GroceryStore::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->with('sections')
             ->orderBy('name')
             ->get();
@@ -79,7 +79,7 @@ class IngredientController extends Controller
         $ingredient->load(['groceryStore', 'groceryStoreSection']);
 
         $groceryStores = GroceryStore::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->with('sections')
             ->orderBy('name')
             ->get();

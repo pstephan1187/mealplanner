@@ -20,7 +20,7 @@ class GroceryStoreController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $stores = GroceryStore::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->withCount('sections')
             ->orderBy('name')
             ->paginate();

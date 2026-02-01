@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Concerns\BelongsToCurrentUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Recipe extends Model
 {
     /** @use HasFactory<\Database\Factories\RecipeFactory> */
-    use HasFactory;
+    use BelongsToCurrentUser, HasFactory;
 
     /**
      * @var list<string>
@@ -57,14 +57,5 @@ class Recipe extends Model
     public function mealPlanRecipes(): HasMany
     {
         return $this->hasMany(MealPlanRecipe::class);
-    }
-
-    /**
-     * @param  Builder<Recipe>  $query
-     * @return Builder<Recipe>
-     */
-    public function scopeForUser(Builder $query, User $user): Builder
-    {
-        return $query->where('user_id', $user->id);
     }
 }

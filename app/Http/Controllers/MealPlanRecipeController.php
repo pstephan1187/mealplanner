@@ -24,8 +24,8 @@ class MealPlanRecipeController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $mealPlanRecipes = MealPlanRecipe::query()
-            ->whereHas('mealPlan', function ($query) use ($request): void {
-                $query->where('user_id', $request->user()->id);
+            ->whereHas('mealPlan', function ($query): void {
+                $query->currentUser();
             })
             ->with('recipe')
             ->orderBy('date')
@@ -39,12 +39,12 @@ class MealPlanRecipeController extends Controller
     public function create(Request $request): InertiaResponse
     {
         $mealPlans = MealPlan::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderByDesc('start_date')
             ->get();
 
         $recipes = Recipe::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderBy('name')
             ->get();
 
@@ -84,12 +84,12 @@ class MealPlanRecipeController extends Controller
         $this->ensureOwnership($request, $mealPlanRecipe, throughRelationship: 'mealPlan');
 
         $mealPlans = MealPlan::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderByDesc('start_date')
             ->get();
 
         $recipes = Recipe::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderBy('name')
             ->get();
 
@@ -139,7 +139,7 @@ class MealPlanRecipeController extends Controller
     {
         return MealPlan::query()
             ->whereKey($mealPlanId)
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->firstOrFail();
     }
 
@@ -147,7 +147,7 @@ class MealPlanRecipeController extends Controller
     {
         return Recipe::query()
             ->whereKey($recipeId)
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->firstOrFail();
     }
 }

@@ -22,7 +22,7 @@ class MealPlanController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $mealPlans = MealPlan::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->latest()
             ->paginate();
 
@@ -84,7 +84,7 @@ class MealPlanController extends Controller
         ]);
 
         $recipes = Recipe::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderBy('name')
             ->get();
 

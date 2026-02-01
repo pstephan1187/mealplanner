@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Concerns\BelongsToCurrentUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ShoppingList extends Model
 {
     /** @use HasFactory<\Database\Factories\ShoppingListFactory> */
-    use HasFactory;
+    use BelongsToCurrentUser, HasFactory;
 
     /**
      * @var list<string>
@@ -35,14 +35,5 @@ class ShoppingList extends Model
     public function items(): HasMany
     {
         return $this->hasMany(ShoppingListItem::class);
-    }
-
-    /**
-     * @param  Builder<ShoppingList>  $query
-     * @return Builder<ShoppingList>
-     */
-    public function scopeForUser(Builder $query, User $user): Builder
-    {
-        return $query->where('user_id', $user->id);
     }
 }

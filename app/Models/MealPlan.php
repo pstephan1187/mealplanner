@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Concerns\BelongsToCurrentUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class MealPlan extends Model
 {
     /** @use HasFactory<\Database\Factories\MealPlanFactory> */
-    use HasFactory;
+    use BelongsToCurrentUser, HasFactory;
 
     /**
      * @var list<string>
@@ -48,14 +48,5 @@ class MealPlan extends Model
     public function shoppingList(): HasOne
     {
         return $this->hasOne(ShoppingList::class);
-    }
-
-    /**
-     * @param  Builder<MealPlan>  $query
-     * @return Builder<MealPlan>
-     */
-    public function scopeForUser(Builder $query, User $user): Builder
-    {
-        return $query->where('user_id', $user->id);
     }
 }

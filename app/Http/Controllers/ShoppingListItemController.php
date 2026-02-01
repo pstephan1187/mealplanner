@@ -24,8 +24,8 @@ class ShoppingListItemController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $items = ShoppingListItem::query()
-            ->whereHas('shoppingList', function ($query) use ($request): void {
-                $query->where('user_id', $request->user()->id);
+            ->whereHas('shoppingList', function ($query): void {
+                $query->currentUser();
             })
             ->with('ingredient')
             ->orderByRaw('sort_order is null, sort_order')
@@ -39,7 +39,7 @@ class ShoppingListItemController extends Controller
     public function create(Request $request): InertiaResponse
     {
         $shoppingLists = ShoppingList::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderByDesc('id')
             ->get();
 
@@ -77,7 +77,7 @@ class ShoppingListItemController extends Controller
         $this->ensureOwnership($request, $shoppingListItem, throughRelationship: 'shoppingList');
 
         $shoppingLists = ShoppingList::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderByDesc('id')
             ->get();
 
@@ -124,7 +124,7 @@ class ShoppingListItemController extends Controller
     {
         return ShoppingList::query()
             ->whereKey($shoppingListId)
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->firstOrFail();
     }
 }

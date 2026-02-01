@@ -28,7 +28,7 @@ class RecipeController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $recipes = Recipe::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->with('ingredients')
             ->latest()
             ->paginate();
@@ -41,12 +41,12 @@ class RecipeController extends Controller
     public function create(Request $request): InertiaResponse
     {
         $ingredients = Ingredient::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderBy('name')
             ->get();
 
         $groceryStores = GroceryStore::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->with('sections')
             ->orderBy('name')
             ->get();
@@ -92,12 +92,12 @@ class RecipeController extends Controller
         $this->ensureOwnership($request, $recipe);
 
         $ingredients = Ingredient::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderBy('name')
             ->get();
 
         $groceryStores = GroceryStore::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->with('sections')
             ->orderBy('name')
             ->get();

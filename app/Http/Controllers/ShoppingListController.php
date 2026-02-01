@@ -25,7 +25,7 @@ class ShoppingListController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $shoppingLists = ShoppingList::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->with('mealPlan')
             ->latest()
             ->paginate();
@@ -38,7 +38,7 @@ class ShoppingListController extends Controller
     public function create(Request $request): InertiaResponse
     {
         $mealPlans = MealPlan::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderByDesc('start_date')
             ->get();
 
@@ -67,7 +67,7 @@ class ShoppingListController extends Controller
         $this->ensureOwnership($request, $shoppingList);
 
         $groceryStores = GroceryStore::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->with('sections')
             ->orderBy('name')
             ->get();
@@ -89,7 +89,7 @@ class ShoppingListController extends Controller
         $this->ensureOwnership($request, $shoppingList);
 
         $mealPlans = MealPlan::query()
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->orderByDesc('start_date')
             ->get();
 
@@ -156,7 +156,7 @@ class ShoppingListController extends Controller
     {
         return MealPlan::query()
             ->whereKey($mealPlanId)
-            ->where('user_id', $request->user()->id)
+            ->currentUser()
             ->firstOrFail();
     }
 

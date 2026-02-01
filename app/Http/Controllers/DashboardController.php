@@ -17,22 +17,20 @@ class DashboardController extends Controller
      */
     public function __invoke(Request $request)
     {
-        $user = $request->user();
-
         $stats = [
-            'recipes' => Recipe::query()->where('user_id', $user->id)->count(),
-            'meal_plans' => MealPlan::query()->where('user_id', $user->id)->count(),
-            'shopping_lists' => ShoppingList::query()->where('user_id', $user->id)->count(),
+            'recipes' => Recipe::query()->currentUser()->count(),
+            'meal_plans' => MealPlan::query()->currentUser()->count(),
+            'shopping_lists' => ShoppingList::query()->currentUser()->count(),
         ];
 
         $recentRecipes = Recipe::query()
-            ->where('user_id', $user->id)
+            ->currentUser()
             ->latest()
             ->limit(3)
             ->get();
 
         $recentMealPlans = MealPlan::query()
-            ->where('user_id', $user->id)
+            ->currentUser()
             ->latest()
             ->limit(3)
             ->get();
