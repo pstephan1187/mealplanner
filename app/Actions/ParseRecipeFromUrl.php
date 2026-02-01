@@ -1,0 +1,185 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions;
+
+use Illuminate\Support\Facades\Http;
+use Prism\Prism\Enums\Provider;
+use Prism\Prism\Facades\Prism;
+use Prism\Prism\Schema\ArraySchema;
+use Prism\Prism\Schema\NumberSchema;
+use Prism\Prism\Schema\ObjectSchema;
+use Prism\Prism\Schema\StringSchema;
+use RuntimeException;
+
+class ParseRecipeFromUrl
+{
+    /**
+     * Fetch a URL, strip HTML, and use Prism to extract structured recipe data.
+     *
+     * @return array<string, mixed>
+     */
+    public function __invoke(string $url): array
+    {
+        $html = $this->fetchHtml($url);
+        $cleanedHtml = $this->stripHtml($html);
+        $schema = $this->buildSchema();
+
+        $response = Prism::structured()
+            ->using(Provider::OpenAI, 'gpt-4o-mini')
+            ->withSchema($schema)
+            ->withProviderOptions(['schema' => ['strict' => true]])
+            ->withSystemPrompt($this->systemPrompt())
+            ->withPrompt($cleanedHtml)
+            ->asStructured();
+
+        $structured = $response->structured;
+
+        if (empty($structured['name']) && empty($structured['instructions'])) {
+            throw new RuntimeException('Could not extract meaningful recipe data from the provided URL.');
+        }
+
+        return $structured;
+    }
+
+    /**
+     * Fetch HTML content from the given URL.
+     */
+    protected function fetchHtml(string $url): string
+    {
+        $response = Http::withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (compatible; MealPlannerBot/1.0)',
+        ])->timeout(15)->get($url);
+
+        $response->throw();
+
+        return $response->body();
+    }
+
+    /**
+     * Strip non-content HTML elements and tags, then truncate.
+     */
+    protected function stripHtml(string $html): string
+    {
+        // Remove script, style, nav, footer, header, aside tags and their contents
+        $patterns = [
+            '/<script\b[^>]*>.*?<\/script>/si',
+            '/<style\b[^>]*>.*?<\/style>/si',
+            '/<nav\b[^>]*>.*?<\/nav>/si',
+            '/<footer\b[^>]*>.*?<\/footer>/si',
+            '/<header\b[^>]*>.*?<\/header>/si',
+            '/<aside\b[^>]*>.*?<\/aside>/si',
+        ];
+
+        $cleaned = preg_replace($patterns, '', $html);
+        $cleaned = strip_tags($cleaned);
+
+        // Collapse whitespace
+        $cleaned = preg_replace('/\s+/', ' ', $cleaned);
+        $cleaned = trim($cleaned);
+
+        return mb_substr($cleaned, 0, 8000);
+    }
+
+    /**
+     * Build the Prism ObjectSchema for recipe extraction.
+     */
+    protected function buildSchema(): ObjectSchema
+    {
+        return new ObjectSchema(
+            name: 'recipe',
+            description: 'Structured recipe data extracted from a webpage',
+            properties: [
+                new StringSchema(
+                    name: 'name',
+                    description: 'The name/title of the recipe',
+                    nullable: true,
+                ),
+                new StringSchema(
+                    name: 'instructions',
+                    description: 'Step-by-step cooking instructions formatted as numbered steps',
+                    nullable: true,
+                ),
+                new NumberSchema(
+                    name: 'servings',
+                    description: 'Number of servings the recipe makes',
+                    nullable: true,
+                ),
+                new StringSchema(
+                    name: 'flavor_profile',
+                    description: 'A brief description of the flavor profile (e.g., savory, sweet, spicy)',
+                    nullable: true,
+                ),
+                new ArraySchema(
+                    name: 'meal_types',
+                    description: 'Meal types this recipe is suitable for. Only use: Breakfast, Lunch, Dinner',
+                    items: new StringSchema(
+                        name: 'meal_type',
+                        description: 'A meal type: Breakfast, Lunch, or Dinner',
+                    ),
+                ),
+                new NumberSchema(
+                    name: 'prep_time_minutes',
+                    description: 'Preparation time in minutes',
+                    nullable: true,
+                ),
+                new NumberSchema(
+                    name: 'cook_time_minutes',
+                    description: 'Cooking time in minutes',
+                    nullable: true,
+                ),
+                new ArraySchema(
+                    name: 'ingredients',
+                    description: 'List of ingredients required for the recipe',
+                    items: new ObjectSchema(
+                        name: 'ingredient',
+                        description: 'A single ingredient with its details',
+                        properties: [
+                            new StringSchema(
+                                name: 'name',
+                                description: 'The ingredient name, normalized (e.g., "chicken breast" not "2 lbs chicken breast")',
+                            ),
+                            new StringSchema(
+                                name: 'quantity',
+                                description: 'The numeric quantity as a string (e.g., "2", "1/2")',
+                                nullable: true,
+                            ),
+                            new StringSchema(
+                                name: 'unit',
+                                description: 'The unit of measurement, normalized (e.g., "cup", "tbsp", "oz")',
+                                nullable: true,
+                            ),
+                            new StringSchema(
+                                name: 'note',
+                                description: 'Any additional notes (e.g., "diced", "room temperature")',
+                                nullable: true,
+                            ),
+                        ],
+                        requiredFields: ['name', 'quantity', 'unit', 'note'],
+                    ),
+                ),
+            ],
+            requiredFields: ['name', 'instructions', 'servings', 'flavor_profile', 'meal_types', 'prep_time_minutes', 'cook_time_minutes', 'ingredients'],
+        );
+    }
+
+    /**
+     * The system prompt for recipe extraction.
+     */
+    protected function systemPrompt(): string
+    {
+        return <<<'PROMPT'
+You are a recipe extraction assistant. Your task is to extract structured recipe data from HTML webpage content.
+
+Guidelines:
+- Extract the recipe name, instructions, servings, flavor profile, meal types, prep time, cook time, and ingredients.
+- Format instructions as numbered steps (e.g., "1. Preheat oven to 350°F.\n2. Mix dry ingredients.").
+- Normalize measurement units (e.g., "tablespoons" → "tbsp", "teaspoons" → "tsp", "ounces" → "oz", "pounds" → "lb").
+- For meal_types, only use these values: Breakfast, Lunch, Dinner. Choose whichever apply.
+- For ingredients, separate the name from the quantity, unit, and any preparation notes.
+- Return null for any fields that cannot be determined from the content.
+- If the content does not appear to contain a recipe, return null for name and instructions.
+PROMPT;
+    }
+}

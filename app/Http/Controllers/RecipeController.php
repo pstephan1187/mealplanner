@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -54,6 +55,7 @@ class RecipeController extends Controller
         return Inertia::render('recipes/Create', [
             'ingredients' => IngredientResource::collection($ingredients),
             'groceryStores' => GroceryStoreResource::collection($groceryStores),
+            'canImportRecipe' => Gate::allows('can-import-recipes'),
         ]);
     }
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\MealPlanRecipeController;
 use App\Http\Controllers\RecipeController;
+use App\Http\Controllers\RecipeImportController;
 use App\Http\Controllers\ShoppingListController;
 use App\Http\Controllers\ShoppingListItemController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('grocery-stores/{grocery_store}/sections/quick', [GroceryStoreSectionController::class, 'storeQuick'])
         ->name('grocery-stores.sections.store-quick');
 
+    Route::post('recipes/import', RecipeImportController::class)->name('recipes.import');
     Route::resource('recipes', RecipeController::class);
     Route::resource('ingredients', IngredientController::class);
     Route::resource('grocery-stores', GroceryStoreController::class);

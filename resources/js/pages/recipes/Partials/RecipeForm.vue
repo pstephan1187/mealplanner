@@ -31,6 +31,7 @@ interface IngredientRow {
     quantity: string;
     unit: string;
     note: string;
+    importedName?: string;
 }
 
 interface Props {
@@ -83,10 +84,12 @@ const {
 const ingredientRows = ref<IngredientRow[]>(
     props.recipe?.ingredients?.length
         ? props.recipe.ingredients.map((ingredient) => ({
-              ingredient_id: ingredient.id,
+              ingredient_id: ingredient.id || '',
               quantity: ingredient.pivot?.quantity?.toString() ?? '',
               unit: ingredient.pivot?.unit ?? '',
               note: ingredient.pivot?.note ?? '',
+              importedName:
+                  !ingredient.id && ingredient.name ? ingredient.name : undefined,
           }))
         : [],
 );
@@ -302,11 +305,24 @@ onBeforeUnmount(() => {
                             v-model="row.ingredient_id"
                             :options="localIngredients"
                             :name="`ingredients[${index}][ingredient_id]`"
-                            placeholder="Select or create ingredient..."
+                            :placeholder="
+                                row.importedName
+                                    ? `${row.importedName} (unmatched)`
+                                    : 'Select or create ingredient...'
+                            "
                             :allow-create="true"
                             create-label="Create"
                             @create="(name) => openIngredientModal(name, index)"
                         />
+                        <p
+                            v-if="
+                                row.importedName && row.ingredient_id === ''
+                            "
+                            class="text-xs text-muted-foreground"
+                        >
+                            Imported as "{{ row.importedName }}" — select
+                            or create a matching ingredient
+                        </p>
                         <InputError
                             :message="
                                 errors[`ingredients.${index}.ingredient_id`]
