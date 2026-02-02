@@ -10,6 +10,7 @@ use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\RecipeImportController;
 use App\Http\Controllers\ShoppingListController;
 use App\Http\Controllers\ShoppingListItemController;
+use App\Http\Controllers\UploadController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -33,6 +34,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('grocery-stores.store-quick');
     Route::post('grocery-stores/{grocery_store}/sections/quick', [GroceryStoreSectionController::class, 'storeQuick'])
         ->name('grocery-stores.sections.store-quick');
+
+    Route::post('uploads/images', UploadController::class)->name('uploads.images');
 
     Route::post('recipes/import', RecipeImportController::class)->name('recipes.import');
     Route::resource('recipes', RecipeController::class);

@@ -205,11 +205,10 @@ const totalTime = computed(
                             <CardTitle>Instructions</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p
-                                class="text-sm leading-relaxed whitespace-pre-line text-muted-foreground"
-                            >
-                                {{ recipe.instructions }}
-                            </p>
+                            <div
+                                class="prose prose-sm max-w-none text-muted-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary"
+                                v-html="recipe.instructions"
+                            />
                         </CardContent>
                     </Card>
                 </div>

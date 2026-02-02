@@ -6,9 +6,19 @@ use App\Rules\Fraction;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Mews\Purifier\Facades\Purifier;
 
 class UpdateRecipeRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('instructions')) {
+            $this->merge([
+                'instructions' => Purifier::clean($this->input('instructions')),
+            ]);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *

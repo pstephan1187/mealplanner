@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { useRecipeIngredientModals } from '@/composables/useRecipeIngredientModals';
 import { MEAL_TYPES } from '@/lib/constants';
 import type { GroceryStore, Ingredient, Recipe } from '@/types/models';
@@ -94,6 +94,7 @@ const ingredientRows = ref<IngredientRow[]>(
         : [],
 );
 
+const instructionsContent = ref(props.recipe?.instructions ?? '');
 const photoPreview = ref<string | null>(props.recipe?.photo_url ?? null);
 let photoObjectUrl: string | null = null;
 
@@ -390,13 +391,10 @@ onBeforeUnmount(() => {
             </CardHeader>
             <CardContent class="grid gap-2">
                 <Label for="instructions">Step-by-step directions</Label>
-                <Textarea
-                    id="instructions"
-                    name="instructions"
-                    rows="8"
+                <input type="hidden" name="instructions" :value="instructionsContent" />
+                <RichTextEditor
+                    v-model="instructionsContent"
                     placeholder="Write clear steps so you can cook without thinking."
-                    :default-value="recipe?.instructions"
-                    required
                 />
                 <InputError :message="errors.instructions" />
             </CardContent>
