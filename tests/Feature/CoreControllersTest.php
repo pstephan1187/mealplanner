@@ -210,6 +210,68 @@ it('populates shopping lists from meal plan recipes', function () {
     expect($item->quantity)->toBe('3.00');
 });
 
+it('aggregates fractional ingredient quantities across meal plan recipes', function () {
+    $user = User::factory()->create();
+    $mealPlan = MealPlan::factory()->for($user)->create([
+        'start_date' => '2026-02-01',
+        'end_date' => '2026-02-07',
+    ]);
+
+    $flour = Ingredient::factory()->create(['name' => 'Flour']);
+    $butter = Ingredient::factory()->create(['name' => 'Butter']);
+
+    // Recipe A: base 2 servings — 1/2 cup flour, 1/4 cup butter
+    $recipeA = Recipe::factory()->for($user)->create(['servings' => 2]);
+    $recipeA->ingredients()->attach([
+        $flour->id => ['quantity' => 0.5, 'unit' => 'cup', 'note' => null],
+        $butter->id => ['quantity' => 0.25, 'unit' => 'cup', 'note' => null],
+    ]);
+
+    // Recipe B: base 4 servings — 3/4 cup flour, 1/3 cup butter
+    $recipeB = Recipe::factory()->for($user)->create(['servings' => 4]);
+    $recipeB->ingredients()->attach([
+        $flour->id => ['quantity' => 0.75, 'unit' => 'cup', 'note' => null],
+        $butter->id => ['quantity' => 1 / 3, 'unit' => 'cup', 'note' => null],
+    ]);
+
+    // Meal plan: Recipe A at 4 servings (scale 2x), Recipe B at 2 servings (scale 0.5x)
+    MealPlanRecipe::factory()->for($mealPlan)->for($recipeA)->create([
+        'date' => '2026-02-02',
+        'meal_type' => 'Dinner',
+        'servings' => 4,
+    ]);
+
+    MealPlanRecipe::factory()->for($mealPlan)->for($recipeB)->create([
+        'date' => '2026-02-03',
+        'meal_type' => 'Lunch',
+        'servings' => 2,
+    ]);
+
+    // Expected flour: (0.5 * 4/2) + (0.75 * 2/4) = 1.0 + 0.375 = 1.375
+    // Expected butter: (0.25 * 4/2) + (0.333.. * 2/4) = 0.5 + 0.1666.. ≈ 0.67
+
+    $response = $this->actingAs($user)->post('/shopping-lists', [
+        'meal_plan_id' => $mealPlan->id,
+    ]);
+
+    $shoppingList = ShoppingList::firstOrFail();
+    $response->assertRedirect(route('shopping-lists.show', $shoppingList));
+
+    $shoppingList->load('items');
+    $items = $shoppingList->items->sortBy('ingredient_id')->values();
+
+    expect($items)->toHaveCount(2);
+
+    $flourItem = $items->firstWhere('ingredient_id', $flour->id);
+    $butterItem = $items->firstWhere('ingredient_id', $butter->id);
+
+    expect($flourItem->unit)->toBe('cup');
+    expect($flourItem->quantity)->toBe('1.38');
+
+    expect($butterItem->unit)->toBe('cup');
+    expect($butterItem->quantity)->toBe('0.67');
+});
+
 it('rejects shopping list creation for other users meal plans', function () {
     $user = User::factory()->create();
     $mealPlan = MealPlan::factory()->create();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\FractionConverter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,7 +24,7 @@ class IngredientResource extends JsonResource
             'grocery_store_section' => GroceryStoreSectionResource::make($this->whenLoaded('groceryStoreSection')),
             'pivot' => $this->whenPivotLoaded('ingredient_recipe', function (): array {
                 return [
-                    'quantity' => $this->pivot->quantity,
+                    'quantity' => FractionConverter::toFraction((float) $this->pivot->quantity),
                     'unit' => $this->pivot->unit,
                     'note' => $this->pivot->note,
                 ];

@@ -335,9 +335,7 @@ onBeforeUnmount(() => {
                         <Input
                             :id="`quantity-${index}`"
                             :name="`ingredients[${index}][quantity]`"
-                            type="number"
-                            min="0.01"
-                            step="0.01"
+                            placeholder="1/2"
                             v-model="row.quantity"
                         />
                         <InputError

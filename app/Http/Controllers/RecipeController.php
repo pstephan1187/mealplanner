@@ -11,6 +11,7 @@ use App\Http\Resources\RecipeResource;
 use App\Models\GroceryStore;
 use App\Models\Ingredient;
 use App\Models\Recipe;
+use App\Support\FractionConverter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -154,7 +155,7 @@ class RecipeController extends Controller
             ->mapWithKeys(function (array $ingredient): array {
                 return [
                     $ingredient['ingredient_id'] => [
-                        'quantity' => $ingredient['quantity'],
+                        'quantity' => FractionConverter::toDecimal((string) $ingredient['quantity']),
                         'unit' => $ingredient['unit'],
                         'note' => $ingredient['note'] ?? null,
                     ],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Recipes;
 
+use App\Rules\Fraction;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -27,7 +28,7 @@ class UpdateRecipeRequest extends FormRequest
             'cook_time_minutes' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'ingredients' => ['sometimes', 'array'],
             'ingredients.*.ingredient_id' => ['required', 'integer', 'exists:ingredients,id'],
-            'ingredients.*.quantity' => ['required', 'numeric', 'min:0.01'],
+            'ingredients.*.quantity' => ['required', new Fraction],
             'ingredients.*.unit' => ['required', 'string', 'max:50'],
             'ingredients.*.note' => ['nullable', 'string', 'max:255'],
         ];
