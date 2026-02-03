@@ -17,7 +17,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Spatie\Image\Enums\Fit;
@@ -66,11 +68,14 @@ class RecipeController extends Controller
         $ingredients = $data['ingredients'] ?? [];
 
         $recipe = $request->user()->recipes()->create(
-            Arr::except($data, ['ingredients', 'photo'])
+            Arr::except($data, ['ingredients', 'photo', 'photo_url'])
         );
 
         if ($request->hasFile('photo')) {
             $recipe->photo_path = $this->storePhoto($request->file('photo'));
+            $recipe->save();
+        } elseif ($request->filled('photo_url')) {
+            $recipe->photo_path = $this->storePhotoFromUrl($request->input('photo_url'));
             $recipe->save();
         }
 
@@ -119,11 +124,14 @@ class RecipeController extends Controller
         $data = $request->validated();
         $shouldSyncIngredients = array_key_exists('ingredients', $data);
 
-        $recipe->fill(Arr::except($data, ['ingredients', 'photo']));
+        $recipe->fill(Arr::except($data, ['ingredients', 'photo', 'photo_url']));
 
         if ($request->hasFile('photo')) {
             $this->deletePhoto($recipe);
             $recipe->photo_path = $this->storePhoto($request->file('photo'));
+        } elseif ($request->filled('photo_url')) {
+            $this->deletePhoto($recipe);
+            $recipe->photo_path = $this->storePhotoFromUrl($request->input('photo_url'));
         }
 
         $recipe->save();
@@ -177,6 +185,41 @@ class RecipeController extends Controller
             $photo,
             ['visibility' => 'public']
         );
+    }
+
+    protected function storePhotoFromUrl(string $url): string
+    {
+        $response = Http::get($url);
+        $response->throw();
+
+        $extension = Str::afterLast(parse_url($url, PHP_URL_PATH) ?? '', '.') ?: 'jpg';
+        $extension = strtolower($extension);
+
+        if (! in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+            $extension = 'jpg';
+        }
+
+        $tmpPath = tempnam(sys_get_temp_dir(), 'recipe_').'.'.$extension;
+        file_put_contents($tmpPath, $response->body());
+
+        try {
+            $image = Image::load($tmpPath);
+            $size = min(2048, $image->getWidth(), $image->getHeight());
+            $image->fit(Fit::Crop, $size, $size)->format($extension)->save();
+
+            $filename = Str::random(40).'.'.$extension;
+
+            Storage::disk($this->photoDisk())->putFileAs(
+                $this->photoDirectory(),
+                $tmpPath,
+                $filename,
+                ['visibility' => 'public']
+            );
+
+            return $this->photoDirectory().'/'.$filename;
+        } finally {
+            @unlink($tmpPath);
+        }
     }
 
     protected function deletePhoto(Recipe $recipe): void

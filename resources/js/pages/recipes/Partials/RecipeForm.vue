@@ -95,8 +95,25 @@ const ingredientRows = ref<IngredientRow[]>(
 );
 
 const instructionsContent = ref(props.recipe?.instructions ?? '');
+const photoMode = ref<'upload' | 'url'>('upload');
+const photoUrlInput = ref('');
 const photoPreview = ref<string | null>(props.recipe?.photo_url ?? null);
 let photoObjectUrl: string | null = null;
+
+const switchPhotoMode = (mode: 'upload' | 'url') => {
+    photoMode.value = mode;
+    photoPreview.value = props.recipe?.photo_url ?? null;
+    photoUrlInput.value = '';
+
+    if (photoObjectUrl) {
+        URL.revokeObjectURL(photoObjectUrl);
+        photoObjectUrl = null;
+    }
+};
+
+const handlePhotoUrlInput = () => {
+    photoPreview.value = (photoUrlInput.value || props.recipe?.photo_url) ?? null;
+};
 
 const addIngredientRow = () => {
     ingredientRows.value.push({
@@ -198,19 +215,59 @@ onBeforeUnmount(() => {
                     <span v-else>Square preview</span>
                 </div>
                 <div class="grid gap-2">
-                    <Label for="photo">Upload square photo</Label>
-                    <input
-                        id="photo"
-                        name="photo"
-                        type="file"
-                        accept="image/*"
-                        class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30"
-                        @change="handlePhotoChange"
-                    />
-                    <p class="text-sm text-muted-foreground">
-                        Use a square photo up to 2048x2048 pixels.
-                    </p>
-                    <InputError :message="errors.photo" />
+                    <div class="flex gap-1 rounded-md bg-muted p-1">
+                        <Button
+                            type="button"
+                            :variant="photoMode === 'upload' ? 'secondary' : 'ghost'"
+                            size="sm"
+                            class="flex-1"
+                            @click="switchPhotoMode('upload')"
+                        >
+                            Upload
+                        </Button>
+                        <Button
+                            type="button"
+                            :variant="photoMode === 'url' ? 'secondary' : 'ghost'"
+                            size="sm"
+                            class="flex-1"
+                            @click="switchPhotoMode('url')"
+                        >
+                            URL
+                        </Button>
+                    </div>
+
+                    <template v-if="photoMode === 'upload'">
+                        <Label for="photo">Upload square photo</Label>
+                        <input
+                            id="photo"
+                            name="photo"
+                            type="file"
+                            accept="image/*"
+                            class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30"
+                            @change="handlePhotoChange"
+                        />
+                        <p class="text-sm text-muted-foreground">
+                            Use a square photo up to 2048x2048 pixels.
+                        </p>
+                        <InputError :message="errors.photo" />
+                    </template>
+
+                    <template v-else>
+                        <Label for="photo_url">Image URL</Label>
+                        <Input
+                            id="photo_url"
+                            name="photo_url"
+                            type="url"
+                            placeholder="https://example.com/photo.jpg"
+                            v-model="photoUrlInput"
+                            @input="handlePhotoUrlInput"
+                        />
+                        <p class="text-sm text-muted-foreground">
+                            Paste a direct link to an image. It will be
+                            downloaded and cropped to a square.
+                        </p>
+                        <InputError :message="errors.photo_url" />
+                    </template>
                 </div>
             </CardContent>
         </Card>
