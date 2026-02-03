@@ -19,6 +19,7 @@ it('imports a recipe from a url', function () {
             'meal_types' => ['Dinner'],
             'prep_time_minutes' => 15,
             'cook_time_minutes' => 30,
+            'photo_url' => 'https://example.com/photo.jpg',
             'ingredients' => [
                 ['name' => 'Spaghetti', 'quantity' => '400', 'unit' => 'g', 'note' => null],
             ],
@@ -37,12 +38,14 @@ it('imports a recipe from a url', function () {
         'meal_types',
         'prep_time_minutes',
         'cook_time_minutes',
+        'photo_url',
         'ingredients' => [
             ['ingredient_id', 'name', 'quantity', 'unit', 'note'],
         ],
     ]);
     expect($response->json('name'))->toBe('Spaghetti Bolognese');
     expect($response->json('servings'))->toBe(4);
+    expect($response->json('photo_url'))->toBe('https://example.com/photo.jpg');
 });
 
 it('redirects unauthenticated users', function () {

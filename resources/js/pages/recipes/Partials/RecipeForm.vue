@@ -95,8 +95,9 @@ const ingredientRows = ref<IngredientRow[]>(
 );
 
 const instructionsContent = ref(props.recipe?.instructions ?? '');
-const photoMode = ref<'upload' | 'url'>('upload');
-const photoUrlInput = ref('');
+const hasImportedPhotoUrl = !!props.recipe?.photo_url && !props.recipe?.id;
+const photoMode = ref<'upload' | 'url'>(hasImportedPhotoUrl ? 'url' : 'upload');
+const photoUrlInput = ref(hasImportedPhotoUrl ? props.recipe!.photo_url! : '');
 const photoPreview = ref<string | null>(props.recipe?.photo_url ?? null);
 let photoObjectUrl: string | null = null;
 

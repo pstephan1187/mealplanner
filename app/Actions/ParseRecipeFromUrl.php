@@ -24,6 +24,7 @@ class ParseRecipeFromUrl
     public function __invoke(string $url): array
     {
         $html = $this->fetchHtml($url);
+        $photoUrl = $this->extractOgImage($html);
         $cleanedText = $this->stripHtml($html);
         $schema = $this->buildSchema();
 
@@ -44,6 +45,8 @@ class ParseRecipeFromUrl
         if (! empty($structured['instructions'])) {
             $structured['instructions'] = $this->sanitizeInstructions($structured['instructions']);
         }
+
+        $structured['photo_url'] = $photoUrl;
 
         return $structured;
     }
@@ -93,6 +96,22 @@ class ParseRecipeFromUrl
     protected function sanitizeInstructions(string $html): string
     {
         return Purifier::clean($html);
+    }
+
+    /**
+     * Extract the Open Graph image URL from the raw HTML.
+     */
+    protected function extractOgImage(string $html): ?string
+    {
+        if (preg_match('/<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']/i', $html, $matches)) {
+            return $matches[1];
+        }
+
+        if (preg_match('/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']/i', $html, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 
     /**
