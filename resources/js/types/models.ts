@@ -79,6 +79,7 @@ export interface Recipe {
     flavor_profile?: string;
     meal_types?: string[];
     photo_url?: string | null;
+    imported_photo_path?: string | null;
     prep_time_minutes?: number | null;
     cook_time_minutes?: number | null;
     ingredients?: RecipeIngredient[];

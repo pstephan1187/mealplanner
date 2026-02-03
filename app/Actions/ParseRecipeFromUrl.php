@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Mews\Purifier\Facades\Purifier;
 use Prism\Prism\Enums\Provider;
 use Prism\Prism\Facades\Prism;
 use Prism\Prism\Schema\ArraySchema;
@@ -12,18 +16,24 @@ use Prism\Prism\Schema\NumberSchema;
 use Prism\Prism\Schema\ObjectSchema;
 use Prism\Prism\Schema\StringSchema;
 use RuntimeException;
+use Spatie\Image\Enums\Fit;
+use Spatie\Image\Image;
 
 class ParseRecipeFromUrl
 {
+    public function __construct(protected ExtractRecipeImages $imageExtractor) {}
+
     /**
-     * Fetch a URL, strip HTML, and use Prism to extract structured recipe data.
+     * Fetch a URL, extract images, and use Prism to extract structured recipe data with HTML instructions.
      *
      * @return array<string, mixed>
      */
     public function __invoke(string $url): array
     {
         $html = $this->fetchHtml($url);
-        $cleanedHtml = $this->stripHtml($html);
+        $imageResult = ($this->imageExtractor)($html, $url);
+        $cleanedText = $this->stripHtml($html);
+        $prompt = $this->buildPrompt($cleanedText, $imageResult['all']);
         $schema = $this->buildSchema();
 
         $response = Prism::structured()
@@ -31,7 +41,7 @@ class ParseRecipeFromUrl
             ->withSchema($schema)
             ->withProviderOptions(['schema' => ['strict' => true]])
             ->withSystemPrompt($this->systemPrompt())
-            ->withPrompt($cleanedHtml)
+            ->withPrompt($prompt)
             ->asStructured();
 
         $structured = $response->structured;
@@ -39,6 +49,14 @@ class ParseRecipeFromUrl
         if (empty($structured['name']) && empty($structured['instructions'])) {
             throw new RuntimeException('Could not extract meaningful recipe data from the provided URL.');
         }
+
+        if (! empty($structured['instructions'])) {
+            $structured['instructions'] = $this->sanitizeInstructions($structured['instructions']);
+        }
+
+        $photo = $this->processMainPhoto($imageResult['main']);
+        $structured['photo_path'] = $photo['path'];
+        $structured['photo_url'] = $photo['url'];
 
         return $structured;
     }
@@ -79,7 +97,79 @@ class ParseRecipeFromUrl
         $cleaned = preg_replace('/\s+/', ' ', $cleaned);
         $cleaned = trim($cleaned);
 
-        return mb_substr($cleaned, 0, 8000);
+        return mb_substr($cleaned, 0, 10000);
+    }
+
+    /**
+     * Build the user prompt with cleaned text and available image URLs.
+     *
+     * @param  array<int, string>  $imageUrls
+     */
+    protected function buildPrompt(string $cleanedText, array $imageUrls): string
+    {
+        $prompt = $cleanedText;
+
+        if (! empty($imageUrls)) {
+            $prompt .= "\n\n---\nAvailable recipe images (use these exact URLs in <img> tags where relevant):\n";
+
+            foreach ($imageUrls as $i => $url) {
+                $prompt .= ($i + 1).'. '.$url."\n";
+            }
+        }
+
+        return $prompt;
+    }
+
+    /**
+     * Sanitize AI-generated HTML instructions using HTMLPurifier.
+     */
+    protected function sanitizeInstructions(string $html): string
+    {
+        return Purifier::clean($html);
+    }
+
+    /**
+     * Process the main recipe image: crop to square, resize, and store in the recipes/ directory.
+     *
+     * @return array{path: string|null, url: string|null}
+     */
+    protected function processMainPhoto(?string $localUrl): array
+    {
+        if (! $localUrl) {
+            return ['path' => null, 'url' => null];
+        }
+
+        try {
+            $relativePath = str_replace('/storage/', '', $localUrl);
+            $disk = Storage::disk('public');
+            $contents = $disk->get($relativePath);
+
+            if (! $contents) {
+                return ['path' => null, 'url' => null];
+            }
+
+            $tmpFile = tempnam(sys_get_temp_dir(), 'recipe_photo_');
+            file_put_contents($tmpFile, $contents);
+
+            $image = Image::load($tmpFile);
+            $size = min(2048, $image->getWidth(), $image->getHeight());
+            $image->fit(Fit::Crop, $size, $size)->save();
+
+            $ext = pathinfo($relativePath, PATHINFO_EXTENSION) ?: 'jpg';
+            $storedPath = 'recipes/'.Str::random(40).'.'.$ext;
+            $disk->put($storedPath, file_get_contents($tmpFile), ['visibility' => 'public']);
+
+            @unlink($tmpFile);
+
+            return [
+                'path' => $storedPath,
+                'url' => $disk->url($storedPath),
+            ];
+        } catch (\Throwable $e) {
+            Log::debug('Failed to process main recipe photo', ['error' => $e->getMessage()]);
+
+            return ['path' => null, 'url' => null];
+        }
     }
 
     /**
@@ -98,7 +188,7 @@ class ParseRecipeFromUrl
                 ),
                 new StringSchema(
                     name: 'instructions',
-                    description: 'Step-by-step cooking instructions formatted as numbered steps',
+                    description: 'Step-by-step cooking instructions formatted as HTML using tags: h2, h3, p, strong, em, ul, ol, li, img[src|alt]',
                     nullable: true,
                 ),
                 new NumberSchema(
@@ -174,7 +264,9 @@ You are a recipe extraction assistant. Your task is to extract structured recipe
 
 Guidelines:
 - Extract the recipe name, instructions, servings, flavor profile, meal types, prep time, cook time, and ingredients.
-- Format instructions as numbered steps (e.g., "1. Preheat oven to 350°F.\n2. Mix dry ingredients.").
+- Format instructions as clean HTML using these tags: h2, h3, p, strong, em, ul, ol, li, img.
+- Structure instructions logically — use headings for recipe sections (e.g., "For the Sauce"), ordered lists for sequential steps, and paragraphs for tips or notes.
+- If image URLs are provided below the recipe text, embed them as <img> tags at relevant points in the instructions. Use the exact URLs provided. Do not invent image URLs.
 - Normalize measurement units (e.g., "tablespoons" → "tbsp", "teaspoons" → "tsp", "ounces" → "oz", "pounds" → "lb").
 - For meal_types, only use these values: Breakfast, Lunch, Dinner. Choose whichever apply.
 - For ingredients, separate the name from the quantity, unit, and any preparation notes.

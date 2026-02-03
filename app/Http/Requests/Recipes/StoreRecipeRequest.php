@@ -34,6 +34,7 @@ class StoreRecipeRequest extends FormRequest
             'meal_types' => ['required', 'array', 'min:1'],
             'meal_types.*' => ['string', Rule::in(['Breakfast', 'Lunch', 'Dinner'])],
             'photo' => ['nullable', 'image'],
+            'imported_photo_path' => ['nullable', 'string', 'regex:/^recipes\/.+$/'],
             'prep_time_minutes' => ['nullable', 'integer', 'min:0'],
             'cook_time_minutes' => ['nullable', 'integer', 'min:0'],
             'ingredients' => ['nullable', 'array'],

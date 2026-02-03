@@ -7,10 +7,16 @@ import Image from '@tiptap/extension-image';
 import { List, ListOrdered, MessageSquareQuote, Minus, Link2, ImagePlus } from 'lucide-vue-next';
 import { onBeforeUnmount, watch } from 'vue';
 
-const props = defineProps<{
-    modelValue?: string;
-    placeholder?: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        modelValue?: string;
+        placeholder?: string;
+        imageMaxWidth?: string;
+    }>(),
+    {
+        imageMaxWidth: '300px',
+    },
+);
 
 const emit = defineEmits<{
     'update:modelValue': [value: string];
@@ -215,6 +221,24 @@ onBeforeUnmount(() => {
             </button>
         </div>
 
-        <EditorContent :editor="editor" />
+        <EditorContent :editor="editor" :style="{ '--image-max-width': props.imageMaxWidth }" />
     </div>
 </template>
+
+<style scoped>
+:deep(.ProseMirror img) {
+    display: block;
+    width: 100%;
+    max-width: var(--image-max-width, 300px);
+    height: auto;
+    margin-inline: auto;
+    border-radius: 0.375rem;
+    cursor: pointer;
+}
+
+:deep(.ProseMirror img.ProseMirror-selectednode) {
+    outline: 1px solid var(--color-ring);
+    outline-offset: -1px;
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring) 50%, transparent);
+}
+</style>
