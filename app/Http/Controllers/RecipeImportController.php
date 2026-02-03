@@ -44,7 +44,26 @@ class RecipeImportController extends Controller
 
         return collect($extractedIngredients)
             ->map(function (array $ingredient) use ($userIngredients): array {
-                $match = $userIngredients->get(strtolower($ingredient['name'] ?? ''));
+                $importedName = strtolower($ingredient['name'] ?? '');
+                $match = $userIngredients->get($importedName);
+
+                $suggestions = [];
+
+                if (! $match && $importedName !== '') {
+                    $suggestions = $userIngredients
+                        ->filter(function (Ingredient $existing) use ($importedName): bool {
+                            $existingName = strtolower($existing->name);
+
+                            return str_contains($existingName, $importedName)
+                                || str_contains($importedName, $existingName);
+                        })
+                        ->map(fn (Ingredient $existing): array => [
+                            'id' => $existing->id,
+                            'name' => $existing->name,
+                        ])
+                        ->values()
+                        ->all();
+                }
 
                 return [
                     'ingredient_id' => $match?->id,
@@ -52,6 +71,7 @@ class RecipeImportController extends Controller
                     'quantity' => $ingredient['quantity'] ?? null,
                     'unit' => $ingredient['unit'] ?? null,
                     'note' => $ingredient['note'] ?? null,
+                    'suggestions' => $suggestions,
                 ];
             })
             ->all();

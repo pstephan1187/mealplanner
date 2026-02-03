@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
 
+import IngredientResolutionModal, {
+    type UnmatchedIngredient,
+} from '@/components/IngredientResolutionModal.vue';
 import InputError from '@/components/InputError.vue';
 import SectionCreationModal from '@/components/SectionCreationModal.vue';
 import StoreCreationModal from '@/components/StoreCreationModal.vue';
@@ -32,6 +35,7 @@ interface IngredientRow {
     unit: string;
     note: string;
     importedName?: string;
+    suggestions?: Array<{ id: number; name: string }>;
 }
 
 interface Props {
@@ -90,6 +94,7 @@ const ingredientRows = ref<IngredientRow[]>(
               note: ingredient.pivot?.note ?? '',
               importedName:
                   !ingredient.id && ingredient.name ? ingredient.name : undefined,
+              suggestions: ingredient.suggestions ?? [],
           }))
         : [],
 );
@@ -128,6 +133,42 @@ const addIngredientRow = () => {
 const removeIngredientRow = (index: number) => {
     ingredientRows.value.splice(index, 1);
 };
+
+const showResolutionModal = ref(false);
+
+const unmatchedIngredients = computed<UnmatchedIngredient[]>(() =>
+    ingredientRows.value
+        .map((row, index) => ({ row, index }))
+        .filter(({ row }) => row.importedName && row.ingredient_id === '')
+        .map(({ row, index }) => ({
+            rowIndex: index,
+            name: row.importedName!,
+            quantity: row.quantity,
+            unit: row.unit,
+            suggestions: row.suggestions ?? [],
+        })),
+);
+
+function handleIngredientsResolved(
+    map: Record<number, { id: number; name: string }>,
+) {
+    for (const [rowIndex, resolved] of Object.entries(map)) {
+        const idx = Number(rowIndex);
+        ingredientRows.value[idx].ingredient_id = resolved.id;
+        ingredientRows.value[idx].importedName = undefined;
+        ingredientRows.value[idx].suggestions = [];
+
+        if (!localIngredients.value.some((ing) => ing.id === resolved.id)) {
+            localIngredients.value.push({
+                id: resolved.id,
+                name: resolved.name,
+            });
+            localIngredients.value.sort((a, b) =>
+                a.name.localeCompare(b.name),
+            );
+        }
+    }
+}
 
 const handlePhotoChange = (event: Event) => {
     const input = event.target as HTMLInputElement;
@@ -336,14 +377,25 @@ onBeforeUnmount(() => {
         <Card>
             <CardHeader class="flex flex-row items-center justify-between">
                 <CardTitle>Ingredients</CardTitle>
-                <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    @click="addIngredientRow"
-                >
-                    Add ingredient
-                </Button>
+                <div class="flex items-center gap-2">
+                    <Button
+                        v-if="unmatchedIngredients.length > 0"
+                        type="button"
+                        variant="default"
+                        size="sm"
+                        @click="showResolutionModal = true"
+                    >
+                        Resolve {{ unmatchedIngredients.length }} unmatched
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        @click="addIngredientRow"
+                    >
+                        Add ingredient
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent class="space-y-4">
                 <div
@@ -533,6 +585,14 @@ onBeforeUnmount(() => {
             :store-id="newIngredientStoreId"
             :prefill-name="prefillSectionName"
             @section-created="handleSectionCreated"
+        />
+
+        <IngredientResolutionModal
+            v-model:open="showResolutionModal"
+            :unmatched-ingredients="unmatchedIngredients"
+            :existing-ingredients="localIngredients"
+            :grocery-stores="localStores"
+            @resolved="handleIngredientsResolved"
         />
     </div>
 </template>

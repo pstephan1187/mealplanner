@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\EnsuresOwnership;
+use App\Http\Requests\Ingredients\BulkStoreIngredientRequest;
 use App\Http\Requests\Ingredients\StoreIngredientRequest;
 use App\Http\Requests\Ingredients\UpdateIngredientRequest;
 use App\Http\Resources\GroceryStoreResource;
@@ -58,6 +59,19 @@ class IngredientController extends Controller
 
         return response()->json([
             'ingredient' => IngredientResource::make($ingredient),
+        ], 201);
+    }
+
+    public function bulkStore(BulkStoreIngredientRequest $request): JsonResponse
+    {
+        $ingredients = collect($request->validated('ingredients'))
+            ->map(fn (array $data) => $request->user()->ingredients()->create($data));
+
+        return response()->json([
+            'ingredients' => $ingredients->map(fn (Ingredient $ingredient): array => [
+                'id' => $ingredient->id,
+                'name' => $ingredient->name,
+            ])->values()->all(),
         ], 201);
     }
 

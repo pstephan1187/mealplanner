@@ -75,8 +75,12 @@ class RecipeController extends Controller
             $recipe->photo_path = $this->storePhoto($request->file('photo'));
             $recipe->save();
         } elseif ($request->filled('photo_url')) {
-            $recipe->photo_path = $this->storePhotoFromUrl($request->input('photo_url'));
-            $recipe->save();
+            try {
+                $recipe->photo_path = $this->storePhotoFromUrl($request->input('photo_url'));
+                $recipe->save();
+            } catch (\Illuminate\Http\Client\RequestException $e) {
+                report($e);
+            }
         }
 
         if ($ingredients !== []) {
@@ -130,8 +134,12 @@ class RecipeController extends Controller
             $this->deletePhoto($recipe);
             $recipe->photo_path = $this->storePhoto($request->file('photo'));
         } elseif ($request->filled('photo_url')) {
-            $this->deletePhoto($recipe);
-            $recipe->photo_path = $this->storePhotoFromUrl($request->input('photo_url'));
+            try {
+                $this->deletePhoto($recipe);
+                $recipe->photo_path = $this->storePhotoFromUrl($request->input('photo_url'));
+            } catch (\Illuminate\Http\Client\RequestException $e) {
+                report($e);
+            }
         }
 
         $recipe->save();
@@ -189,7 +197,9 @@ class RecipeController extends Controller
 
     protected function storePhotoFromUrl(string $url): string
     {
-        $response = Http::get($url);
+        $response = Http::withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (compatible; MealPlannerBot/1.0)',
+        ])->timeout(15)->get($url);
         $response->throw();
 
         $extension = Str::afterLast(parse_url($url, PHP_URL_PATH) ?? '', '.') ?: 'jpg';

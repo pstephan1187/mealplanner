@@ -53,6 +53,7 @@ interface ImportedIngredient {
     quantity: string | number | null;
     unit: string | null;
     note: string | null;
+    suggestions: Array<{ id: number; name: string }>;
 }
 
 interface ImportResponse {
@@ -93,6 +94,7 @@ const recipeFromImport = computed<Recipe | null>(() => {
         ingredients: (data.ingredients ?? []).map((ing) => ({
             id: ing.ingredient_id ?? 0,
             name: ing.name ?? '',
+            suggestions: ing.suggestions ?? [],
             pivot: {
                 quantity: ing.quantity ?? '',
                 unit: ing.unit ?? '',

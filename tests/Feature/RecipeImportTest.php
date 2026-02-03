@@ -40,7 +40,7 @@ it('imports a recipe from a url', function () {
         'cook_time_minutes',
         'photo_url',
         'ingredients' => [
-            ['ingredient_id', 'name', 'quantity', 'unit', 'note'],
+            ['ingredient_id', 'name', 'quantity', 'unit', 'note', 'suggestions'],
         ],
     ]);
     expect($response->json('name'))->toBe('Spaghetti Bolognese');
@@ -228,4 +228,154 @@ it('does not match ingredients from other users', function () {
 
     $response->assertSuccessful();
     expect($response->json('ingredients.0.ingredient_id'))->toBeNull();
+});
+
+it('returns suggestions array in import response', function () {
+    $user = User::factory()->create();
+
+    $this->mock(ParseRecipeFromUrl::class)
+        ->shouldReceive('__invoke')
+        ->once()
+        ->andReturn([
+            'name' => 'Test Recipe',
+            'instructions' => '<p>Test</p>',
+            'servings' => 1,
+            'flavor_profile' => null,
+            'meal_types' => [],
+            'prep_time_minutes' => null,
+            'cook_time_minutes' => null,
+            'ingredients' => [
+                ['name' => 'Garlic', 'quantity' => '1', 'unit' => 'clove', 'note' => null],
+            ],
+        ]);
+
+    $response = $this->actingAs($user)->postJson(route('recipes.import'), [
+        'url' => 'https://example.com/recipe',
+    ]);
+
+    $response->assertSuccessful();
+    $response->assertJsonStructure([
+        'ingredients' => [
+            ['ingredient_id', 'name', 'quantity', 'unit', 'note', 'suggestions'],
+        ],
+    ]);
+});
+
+it('suggests fuzzy matches when imported name is contained in existing ingredient name', function () {
+    $user = User::factory()->create();
+    $evoo = Ingredient::factory()->for($user)->create(['name' => 'Extra Virgin Olive Oil']);
+
+    $this->mock(ParseRecipeFromUrl::class)
+        ->shouldReceive('__invoke')
+        ->once()
+        ->andReturn([
+            'name' => 'Pasta',
+            'instructions' => '<p>Cook</p>',
+            'servings' => 2,
+            'flavor_profile' => null,
+            'meal_types' => [],
+            'prep_time_minutes' => null,
+            'cook_time_minutes' => null,
+            'ingredients' => [
+                ['name' => 'olive oil', 'quantity' => '2', 'unit' => 'tbsp', 'note' => null],
+            ],
+        ]);
+
+    $response = $this->actingAs($user)->postJson(route('recipes.import'), [
+        'url' => 'https://example.com/pasta',
+    ]);
+
+    $response->assertSuccessful();
+    expect($response->json('ingredients.0.ingredient_id'))->toBeNull();
+    expect($response->json('ingredients.0.suggestions'))->toHaveCount(1);
+    expect($response->json('ingredients.0.suggestions.0.id'))->toBe($evoo->id);
+    expect($response->json('ingredients.0.suggestions.0.name'))->toBe('Extra Virgin Olive Oil');
+});
+
+it('suggests fuzzy matches when existing ingredient name is contained in imported name', function () {
+    $user = User::factory()->create();
+    $chicken = Ingredient::factory()->for($user)->create(['name' => 'Chicken Breast']);
+
+    $this->mock(ParseRecipeFromUrl::class)
+        ->shouldReceive('__invoke')
+        ->once()
+        ->andReturn([
+            'name' => 'Chicken Dinner',
+            'instructions' => '<p>Cook</p>',
+            'servings' => 2,
+            'flavor_profile' => null,
+            'meal_types' => [],
+            'prep_time_minutes' => null,
+            'cook_time_minutes' => null,
+            'ingredients' => [
+                ['name' => 'boneless skinless chicken breast', 'quantity' => '2', 'unit' => 'lb', 'note' => null],
+            ],
+        ]);
+
+    $response = $this->actingAs($user)->postJson(route('recipes.import'), [
+        'url' => 'https://example.com/chicken',
+    ]);
+
+    $response->assertSuccessful();
+    expect($response->json('ingredients.0.ingredient_id'))->toBeNull();
+    expect($response->json('ingredients.0.suggestions'))->toHaveCount(1);
+    expect($response->json('ingredients.0.suggestions.0.id'))->toBe($chicken->id);
+});
+
+it('returns empty suggestions for exact matches', function () {
+    $user = User::factory()->create();
+    $garlic = Ingredient::factory()->for($user)->create(['name' => 'Garlic']);
+
+    $this->mock(ParseRecipeFromUrl::class)
+        ->shouldReceive('__invoke')
+        ->once()
+        ->andReturn([
+            'name' => 'Garlic Bread',
+            'instructions' => '<p>Cook</p>',
+            'servings' => 2,
+            'flavor_profile' => null,
+            'meal_types' => [],
+            'prep_time_minutes' => null,
+            'cook_time_minutes' => null,
+            'ingredients' => [
+                ['name' => 'garlic', 'quantity' => '3', 'unit' => 'cloves', 'note' => null],
+            ],
+        ]);
+
+    $response = $this->actingAs($user)->postJson(route('recipes.import'), [
+        'url' => 'https://example.com/garlic-bread',
+    ]);
+
+    $response->assertSuccessful();
+    expect($response->json('ingredients.0.ingredient_id'))->toBe($garlic->id);
+    expect($response->json('ingredients.0.suggestions'))->toBeEmpty();
+});
+
+it('does not suggest fuzzy matches from other users', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    Ingredient::factory()->for($otherUser)->create(['name' => 'Extra Virgin Olive Oil']);
+
+    $this->mock(ParseRecipeFromUrl::class)
+        ->shouldReceive('__invoke')
+        ->once()
+        ->andReturn([
+            'name' => 'Pasta',
+            'instructions' => '<p>Cook</p>',
+            'servings' => 2,
+            'flavor_profile' => null,
+            'meal_types' => [],
+            'prep_time_minutes' => null,
+            'cook_time_minutes' => null,
+            'ingredients' => [
+                ['name' => 'olive oil', 'quantity' => '2', 'unit' => 'tbsp', 'note' => null],
+            ],
+        ]);
+
+    $response = $this->actingAs($user)->postJson(route('recipes.import'), [
+        'url' => 'https://example.com/pasta',
+    ]);
+
+    $response->assertSuccessful();
+    expect($response->json('ingredients.0.suggestions'))->toBeEmpty();
 });

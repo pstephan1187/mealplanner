@@ -69,6 +69,7 @@ export interface RecipeIngredient {
     id: number;
     name: string;
     pivot?: RecipeIngredientPivot | null;
+    suggestions?: Array<{ id: number; name: string }>;
 }
 
 export interface Recipe {

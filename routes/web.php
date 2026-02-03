@@ -30,6 +30,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('ingredients/quick', [IngredientController::class, 'storeQuick'])
         ->name('ingredients.store-quick');
 
+    Route::post('ingredients/bulk', [IngredientController::class, 'bulkStore'])
+        ->name('ingredients.bulk-store');
+
     Route::post('grocery-stores/quick', [GroceryStoreController::class, 'storeQuick'])
         ->name('grocery-stores.store-quick');
     Route::post('grocery-stores/{grocery_store}/sections/quick', [GroceryStoreSectionController::class, 'storeQuick'])
