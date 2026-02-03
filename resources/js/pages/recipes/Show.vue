@@ -162,57 +162,55 @@ const totalTime = computed(
                     </CardContent>
                 </Card>
 
-                <div class="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Ingredients</CardTitle>
-                        </CardHeader>
-                        <CardContent class="space-y-3">
-                            <div
-                                v-if="!recipe.ingredients?.length"
-                                class="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground"
-                            >
-                                No ingredients yet. Add them in the edit screen.
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Ingredients</CardTitle>
+                    </CardHeader>
+                    <CardContent class="space-y-3">
+                        <div
+                            v-if="!recipe.ingredients?.length"
+                            class="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground"
+                        >
+                            No ingredients yet. Add them in the edit screen.
+                        </div>
+                        <div
+                            v-for="ingredient in recipe.ingredients"
+                            :key="ingredient.id"
+                            class="flex items-start justify-between gap-4 rounded-lg border border-border/70 p-3 text-sm"
+                        >
+                            <div>
+                                <p class="font-medium">
+                                    {{ ingredient.name }}
+                                </p>
+                                <p
+                                    v-if="ingredient.pivot?.note"
+                                    class="text-muted-foreground"
+                                >
+                                    {{ ingredient.pivot.note }}
+                                </p>
                             </div>
-                            <div
-                                v-for="ingredient in recipe.ingredients"
-                                :key="ingredient.id"
-                                class="flex items-start justify-between gap-4 rounded-lg border border-border/70 p-3 text-sm"
-                            >
-                                <div>
-                                    <p class="font-medium">
-                                        {{ ingredient.name }}
-                                    </p>
-                                    <p
-                                        v-if="ingredient.pivot?.note"
-                                        class="text-muted-foreground"
-                                    >
-                                        {{ ingredient.pivot.note }}
-                                    </p>
-                                </div>
-                                <div class="text-right text-muted-foreground">
-                                    <p>
-                                        {{ ingredient.pivot?.quantity ?? '-' }}
-                                        {{ ingredient.pivot?.unit }}
-                                    </p>
-                                </div>
+                            <div class="text-right text-muted-foreground">
+                                <p>
+                                    {{ ingredient.pivot?.quantity ?? '-' }}
+                                    {{ ingredient.pivot?.unit }}
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Instructions</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div
-                                class="prose prose-sm max-w-none text-muted-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary"
-                                v-html="recipe.instructions"
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Instructions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div
+                        class="prose prose-sm max-w-none text-muted-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary"
+                        v-html="recipe.instructions"
+                    />
+                </CardContent>
+            </Card>
         </div>
     </AppLayout>
 </template>
