@@ -35,12 +35,6 @@ class MealPlanRecipeSeeder extends Seeder
             ->where('user_id', $user->id)
             ->get();
 
-        $recipesForMealType = function (string $mealType) use ($recipes) {
-            return $recipes->filter(
-                fn (Recipe $recipe) => in_array($mealType, $recipe->meal_types ?? [], true)
-            )->values();
-        };
-
         foreach ($mealPlans as $mealPlan) {
             $start = Carbon::parse($mealPlan->start_date);
             $end = Carbon::parse($mealPlan->end_date);
@@ -55,7 +49,7 @@ class MealPlanRecipeSeeder extends Seeder
                     $mealPlan->id,
                     $day,
                     'Dinner',
-                    $recipesForMealType('Dinner')
+                    $recipes
                 );
 
                 if ($index < 4) {
@@ -63,7 +57,7 @@ class MealPlanRecipeSeeder extends Seeder
                         $mealPlan->id,
                         $day,
                         'Breakfast',
-                        $recipesForMealType('Breakfast')
+                        $recipes
                     );
                 }
 
@@ -72,7 +66,7 @@ class MealPlanRecipeSeeder extends Seeder
                         $mealPlan->id,
                         $day,
                         'Lunch',
-                        $recipesForMealType('Lunch')
+                        $recipes
                     );
                 }
             }

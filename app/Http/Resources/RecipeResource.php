@@ -22,7 +22,6 @@ class RecipeResource extends JsonResource
             'instructions' => $this->instructions,
             'servings' => $this->servings,
             'flavor_profile' => $this->flavor_profile,
-            'meal_types' => $this->meal_types,
             'photo_path' => $this->photo_path,
             'photo_url' => $this->photo_path
                 ? Storage::disk('public')->url($this->photo_path)

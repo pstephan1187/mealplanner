@@ -9,7 +9,6 @@ import SectionCreationModal from '@/components/SectionCreationModal.vue';
 import StoreCreationModal from '@/components/StoreCreationModal.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import {
     Dialog,
@@ -24,7 +23,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { useRecipeIngredientModals } from '@/composables/useRecipeIngredientModals';
-import { MEAL_TYPES } from '@/lib/constants';
 import type { GroceryStore, Ingredient, Recipe } from '@/types/models';
 
 type IngredientOption = Pick<Ingredient, 'id' | 'name'>;
@@ -46,8 +44,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-const selectedMealTypes = computed(() => props.recipe?.meal_types ?? []);
 
 const localIngredients = ref<ComboboxOption[]>([...props.ingredients]);
 const localStores = ref<GroceryStore[]>([...props.groceryStores]);
@@ -316,60 +312,35 @@ onBeforeUnmount(() => {
 
         <Card>
             <CardHeader>
-                <CardTitle>Meal details</CardTitle>
+                <CardTitle>Timing</CardTitle>
             </CardHeader>
-            <CardContent class="grid gap-6">
+            <CardContent class="grid gap-6 md:grid-cols-2">
                 <div class="grid gap-2">
-                    <Label>Meal types</Label>
-                    <div class="flex flex-wrap gap-4">
-                        <Label
-                            v-for="mealType in MEAL_TYPES"
-                            :key="mealType"
-                            class="flex items-center gap-2 text-sm font-normal"
-                        >
-                            <Checkbox
-                                :id="`meal-type-${mealType}`"
-                                name="meal_types[]"
-                                :value="mealType"
-                                :default-value="
-                                    selectedMealTypes.includes(mealType)
-                                "
-                                :data-test="`meal-type-${mealType.toLowerCase()}`"
-                            />
-                            <span>{{ mealType }}</span>
-                        </Label>
-                    </div>
-                    <InputError :message="errors.meal_types" />
+                    <Label for="prep_time_minutes"
+                        >Prep time (minutes)</Label
+                    >
+                    <Input
+                        id="prep_time_minutes"
+                        name="prep_time_minutes"
+                        type="number"
+                        min="0"
+                        :default-value="recipe?.prep_time_minutes ?? ''"
+                    />
+                    <InputError :message="errors.prep_time_minutes" />
                 </div>
 
-                <div class="grid gap-6 md:grid-cols-2">
-                    <div class="grid gap-2">
-                        <Label for="prep_time_minutes"
-                            >Prep time (minutes)</Label
-                        >
-                        <Input
-                            id="prep_time_minutes"
-                            name="prep_time_minutes"
-                            type="number"
-                            min="0"
-                            :default-value="recipe?.prep_time_minutes ?? ''"
-                        />
-                        <InputError :message="errors.prep_time_minutes" />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="cook_time_minutes"
-                            >Cook time (minutes)</Label
-                        >
-                        <Input
-                            id="cook_time_minutes"
-                            name="cook_time_minutes"
-                            type="number"
-                            min="0"
-                            :default-value="recipe?.cook_time_minutes ?? ''"
-                        />
-                        <InputError :message="errors.cook_time_minutes" />
-                    </div>
+                <div class="grid gap-2">
+                    <Label for="cook_time_minutes"
+                        >Cook time (minutes)</Label
+                    >
+                    <Input
+                        id="cook_time_minutes"
+                        name="cook_time_minutes"
+                        type="number"
+                        min="0"
+                        :default-value="recipe?.cook_time_minutes ?? ''"
+                    />
+                    <InputError :message="errors.cook_time_minutes" />
                 </div>
             </CardContent>
         </Card>

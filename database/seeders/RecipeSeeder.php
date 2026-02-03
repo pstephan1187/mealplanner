@@ -29,7 +29,7 @@ class RecipeSeeder extends Seeder
                 'instructions' => "1. Pat salmon dry and season with salt and pepper.\n2. Whisk honey, soy sauce, garlic, and lemon juice.\n3. Sear salmon, pour sauce, and bake until flaky.\n4. Spoon glaze over the top before serving.",
                 'servings' => 2,
                 'flavor_profile' => 'Sweet and savory',
-                'meal_types' => ['Dinner'],
+
                 'prep_time_minutes' => 10,
                 'cook_time_minutes' => 15,
                 'ingredients' => [
@@ -46,7 +46,7 @@ class RecipeSeeder extends Seeder
                 'instructions' => "1. Slice peppers and onion, toss with oil and spices.\n2. Add chicken strips and coat evenly.\n3. Roast until chicken is cooked through.\n4. Serve with tortillas and lime.",
                 'servings' => 4,
                 'flavor_profile' => 'Smoky and bright',
-                'meal_types' => ['Dinner'],
+
                 'prep_time_minutes' => 15,
                 'cook_time_minutes' => 20,
                 'ingredients' => [
@@ -65,7 +65,7 @@ class RecipeSeeder extends Seeder
                 'instructions' => "1. Scramble eggs and set aside.\n2. Saute garlic, carrots, peas, and green onion.\n3. Stir in rice and soy sauce.\n4. Fold in eggs and finish with sesame oil.",
                 'servings' => 3,
                 'flavor_profile' => 'Savory',
-                'meal_types' => ['Lunch', 'Dinner'],
+
                 'prep_time_minutes' => 15,
                 'cook_time_minutes' => 15,
                 'ingredients' => [
@@ -84,7 +84,7 @@ class RecipeSeeder extends Seeder
                 'instructions' => "1. Layer yogurt, granola, and berries in a glass.\n2. Drizzle with honey and finish with a pinch of cinnamon.",
                 'servings' => 1,
                 'flavor_profile' => 'Fresh and sweet',
-                'meal_types' => ['Breakfast'],
+
                 'prep_time_minutes' => 5,
                 'cook_time_minutes' => 0,
                 'ingredients' => [
@@ -99,7 +99,7 @@ class RecipeSeeder extends Seeder
                 'instructions' => "1. Saute onion and garlic, then brown turkey.\n2. Add spices, tomatoes, and beans.\n3. Simmer until thick and flavorful.",
                 'servings' => 5,
                 'flavor_profile' => 'Hearty and spicy',
-                'meal_types' => ['Lunch', 'Dinner'],
+
                 'prep_time_minutes' => 15,
                 'cook_time_minutes' => 35,
                 'ingredients' => [
@@ -117,7 +117,7 @@ class RecipeSeeder extends Seeder
                 'instructions' => "1. Cook pasta until al dente.\n2. Toss with olive oil, tomatoes, and basil.\n3. Fold in mozzarella and a splash of pasta water.",
                 'servings' => 4,
                 'flavor_profile' => 'Bright and herbaceous',
-                'meal_types' => ['Lunch', 'Dinner'],
+
                 'prep_time_minutes' => 10,
                 'cook_time_minutes' => 15,
                 'ingredients' => [
@@ -134,7 +134,7 @@ class RecipeSeeder extends Seeder
                 'instructions' => "1. Combine oats, milk, and chia seeds.\n2. Stir in honey and refrigerate overnight.\n3. Top with berries before serving.",
                 'servings' => 2,
                 'flavor_profile' => 'Creamy and lightly sweet',
-                'meal_types' => ['Breakfast'],
+
                 'prep_time_minutes' => 5,
                 'cook_time_minutes' => 0,
                 'ingredients' => [
@@ -150,7 +150,7 @@ class RecipeSeeder extends Seeder
                 'instructions' => "1. Toss veggies with olive oil, lemon, and herbs.\n2. Roast until tender and caramelized.\n3. Finish with parmesan.",
                 'servings' => 4,
                 'flavor_profile' => 'Fresh and savory',
-                'meal_types' => ['Dinner'],
+
                 'prep_time_minutes' => 10,
                 'cook_time_minutes' => 25,
                 'ingredients' => [

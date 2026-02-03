@@ -16,7 +16,7 @@ it('imports a recipe from a url', function () {
             'instructions' => '<ol><li>Cook pasta according to package directions.</li><li>Make sauce in a separate pan.</li></ol>',
             'servings' => 4,
             'flavor_profile' => 'Savory',
-            'meal_types' => ['Dinner'],
+
             'prep_time_minutes' => 15,
             'cook_time_minutes' => 30,
             'photo_url' => 'https://example.com/photo.jpg',
@@ -35,7 +35,6 @@ it('imports a recipe from a url', function () {
         'instructions',
         'servings',
         'flavor_profile',
-        'meal_types',
         'prep_time_minutes',
         'cook_time_minutes',
         'photo_url',
@@ -101,7 +100,7 @@ it('matches existing ingredients case-insensitively', function () {
             'instructions' => '<ol><li>Spread butter on bread.</li><li>Add minced garlic on top.</li></ol>',
             'servings' => 2,
             'flavor_profile' => 'Savory',
-            'meal_types' => ['Dinner'],
+
             'prep_time_minutes' => 5,
             'cook_time_minutes' => 10,
             'ingredients' => [
@@ -140,7 +139,7 @@ it('returns null ingredient_id for unmatched ingredients', function () {
             'instructions' => '<ol><li>Mix all ingredients together.</li></ol>',
             'servings' => 1,
             'flavor_profile' => null,
-            'meal_types' => [],
+
             'prep_time_minutes' => null,
             'cook_time_minutes' => null,
             'ingredients' => [
@@ -168,7 +167,7 @@ it('handles partial data from ai extraction', function () {
             'instructions' => null,
             'servings' => null,
             'flavor_profile' => null,
-            'meal_types' => [],
+
             'prep_time_minutes' => null,
             'cook_time_minutes' => null,
             'ingredients' => [],
@@ -214,7 +213,7 @@ it('does not match ingredients from other users', function () {
             'instructions' => '<ol><li>Toast the bread until golden.</li><li>Spread butter on top.</li></ol>',
             'servings' => 1,
             'flavor_profile' => 'Savory',
-            'meal_types' => ['Breakfast'],
+
             'prep_time_minutes' => 2,
             'cook_time_minutes' => 3,
             'ingredients' => [
@@ -241,7 +240,7 @@ it('returns suggestions array in import response', function () {
             'instructions' => '<p>Test</p>',
             'servings' => 1,
             'flavor_profile' => null,
-            'meal_types' => [],
+
             'prep_time_minutes' => null,
             'cook_time_minutes' => null,
             'ingredients' => [
@@ -273,7 +272,7 @@ it('suggests fuzzy matches when imported name is contained in existing ingredien
             'instructions' => '<p>Cook</p>',
             'servings' => 2,
             'flavor_profile' => null,
-            'meal_types' => [],
+
             'prep_time_minutes' => null,
             'cook_time_minutes' => null,
             'ingredients' => [
@@ -304,7 +303,7 @@ it('suggests fuzzy matches when existing ingredient name is contained in importe
             'instructions' => '<p>Cook</p>',
             'servings' => 2,
             'flavor_profile' => null,
-            'meal_types' => [],
+
             'prep_time_minutes' => null,
             'cook_time_minutes' => null,
             'ingredients' => [
@@ -334,7 +333,7 @@ it('returns empty suggestions for exact matches', function () {
             'instructions' => '<p>Cook</p>',
             'servings' => 2,
             'flavor_profile' => null,
-            'meal_types' => [],
+
             'prep_time_minutes' => null,
             'cook_time_minutes' => null,
             'ingredients' => [
@@ -364,7 +363,7 @@ it('does not suggest fuzzy matches from other users', function () {
             'instructions' => '<p>Cook</p>',
             'servings' => 2,
             'flavor_profile' => null,
-            'meal_types' => [],
+
             'prep_time_minutes' => null,
             'cook_time_minutes' => null,
             'ingredients' => [

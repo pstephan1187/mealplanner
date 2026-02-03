@@ -5,7 +5,6 @@ namespace App\Http\Requests\Recipes;
 use App\Rules\Fraction;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Mews\Purifier\Facades\Purifier;
 
 class UpdateRecipeRequest extends FormRequest
@@ -31,8 +30,6 @@ class UpdateRecipeRequest extends FormRequest
             'instructions' => ['sometimes', 'string'],
             'servings' => ['sometimes', 'integer', 'min:1'],
             'flavor_profile' => ['sometimes', 'string', 'max:255'],
-            'meal_types' => ['sometimes', 'array', 'min:1'],
-            'meal_types.*' => ['string', Rule::in(['Breakfast', 'Lunch', 'Dinner'])],
             'photo' => ['sometimes', 'nullable', 'image', 'prohibits:photo_url'],
             'photo_url' => ['sometimes', 'nullable', 'url:http,https', 'prohibits:photo'],
             'prep_time_minutes' => ['sometimes', 'nullable', 'integer', 'min:0'],

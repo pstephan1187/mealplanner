@@ -23,7 +23,6 @@ class Recipe extends Model
         'instructions',
         'servings',
         'flavor_profile',
-        'meal_types',
         'photo_path',
         'prep_time_minutes',
         'cook_time_minutes',
@@ -35,7 +34,6 @@ class Recipe extends Model
     protected function casts(): array
     {
         return [
-            'meal_types' => 'array',
             'servings' => 'integer',
             'prep_time_minutes' => 'integer',
             'cook_time_minutes' => 'integer',

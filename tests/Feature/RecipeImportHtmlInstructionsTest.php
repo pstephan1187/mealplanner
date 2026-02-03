@@ -17,7 +17,7 @@ it('passes html instructions through to the response intact', function () {
             'instructions' => $htmlInstructions,
             'servings' => 2,
             'flavor_profile' => 'Savory',
-            'meal_types' => ['Dinner'],
+
             'prep_time_minutes' => 5,
             'cook_time_minutes' => 10,
             'ingredients' => [],
@@ -52,7 +52,7 @@ it('imports successfully with no images extracted', function () {
             'instructions' => '<ol><li>Chop vegetables.</li><li>Toss with dressing.</li></ol>',
             'servings' => 2,
             'flavor_profile' => 'Fresh',
-            'meal_types' => ['Lunch'],
+
             'prep_time_minutes' => 10,
             'cook_time_minutes' => null,
             'ingredients' => [

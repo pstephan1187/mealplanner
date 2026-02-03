@@ -4,16 +4,6 @@ use App\Models\Recipe;
 use App\Models\ShoppingListItem;
 use App\Models\User;
 
-it('casts meal types to an array', function () {
-    $recipe = Recipe::factory()->create([
-        'meal_types' => ['Breakfast', 'Dinner'],
-    ]);
-
-    expect($recipe->meal_types)
-        ->toBeArray()
-        ->toMatchArray(['Breakfast', 'Dinner']);
-});
-
 it('links recipes to a user', function () {
     $recipe = Recipe::factory()->create();
 

@@ -21,7 +21,6 @@ it('updates recipes with new photos and ingredients', function () {
         'instructions' => 'Old instructions',
         'servings' => 2,
         'flavor_profile' => 'Old',
-        'meal_types' => ['Dinner'],
         'photo_path' => 'recipes/old.jpg',
     ]);
 
@@ -38,7 +37,6 @@ it('updates recipes with new photos and ingredients', function () {
         'instructions' => 'New instructions',
         'servings' => 4,
         'flavor_profile' => 'Bright',
-        'meal_types' => ['Lunch'],
         'photo' => UploadedFile::fake()->image('new.jpg', 1200, 1200),
         'ingredients' => [
             [
@@ -95,7 +93,6 @@ it('prevents editing recipes for other users', function () {
         'instructions' => 'Nope',
         'servings' => 1,
         'flavor_profile' => 'None',
-        'meal_types' => ['Breakfast'],
     ]);
 
     $response->assertNotFound();

@@ -3,7 +3,6 @@ import { Form, Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 import Heading from '@/components/Heading.vue';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -117,16 +116,6 @@ const totalTime = computed(
                         </div>
                     </div>
                     <CardContent class="space-y-6">
-                        <div class="flex flex-wrap gap-2">
-                            <Badge
-                                v-for="mealType in recipe.meal_types"
-                                :key="mealType"
-                                variant="secondary"
-                            >
-                                {{ mealType }}
-                            </Badge>
-                        </div>
-
                         <div class="grid gap-3 text-sm text-muted-foreground">
                             <div class="flex items-center justify-between">
                                 <span>Flavor profile</span>

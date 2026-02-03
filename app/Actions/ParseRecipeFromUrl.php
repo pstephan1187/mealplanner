@@ -143,14 +143,6 @@ class ParseRecipeFromUrl
                     description: 'A brief description of the flavor profile (e.g., savory, sweet, spicy)',
                     nullable: true,
                 ),
-                new ArraySchema(
-                    name: 'meal_types',
-                    description: 'Meal types this recipe is suitable for. Only use: Breakfast, Lunch, Dinner',
-                    items: new StringSchema(
-                        name: 'meal_type',
-                        description: 'A meal type: Breakfast, Lunch, or Dinner',
-                    ),
-                ),
                 new NumberSchema(
                     name: 'prep_time_minutes',
                     description: 'Preparation time in minutes',
@@ -192,7 +184,7 @@ class ParseRecipeFromUrl
                     ),
                 ),
             ],
-            requiredFields: ['name', 'instructions', 'servings', 'flavor_profile', 'meal_types', 'prep_time_minutes', 'cook_time_minutes', 'ingredients'],
+            requiredFields: ['name', 'instructions', 'servings', 'flavor_profile', 'prep_time_minutes', 'cook_time_minutes', 'ingredients'],
         );
     }
 
@@ -205,12 +197,11 @@ class ParseRecipeFromUrl
 You are a recipe extraction assistant. Your task is to extract structured recipe data from HTML webpage content.
 
 Guidelines:
-- Extract the recipe name, instructions, servings, flavor profile, meal types, prep time, cook time, and ingredients.
+- Extract the recipe name, instructions, servings, flavor profile, prep time, cook time, and ingredients.
 - Format instructions as clean HTML using these tags: h2, h3, p, strong, em, ul, ol, li.
 - Structure instructions logically — use headings for recipe sections (e.g., "For the Sauce"), ordered lists for sequential steps, and paragraphs for tips or notes.
 - Do not include any image tags in the instructions.
 - Normalize measurement units (e.g., "tablespoons" → "tbsp", "teaspoons" → "tsp", "ounces" → "oz", "pounds" → "lb").
-- For meal_types, only use these values: Breakfast, Lunch, Dinner. Choose whichever apply.
 - For ingredients, separate the name from the quantity, unit, and any preparation notes.
 - Return null for any fields that cannot be determined from the content.
 - If the content does not appear to contain a recipe, return null for name and instructions.
