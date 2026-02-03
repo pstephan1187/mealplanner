@@ -22,8 +22,6 @@ it('imports a recipe from a url', function () {
             'ingredients' => [
                 ['name' => 'Spaghetti', 'quantity' => '400', 'unit' => 'g', 'note' => null],
             ],
-            'photo_path' => 'recipes/test-photo.jpg',
-            'photo_url' => '/storage/recipes/test-photo.jpg',
         ]);
 
     $response = $this->actingAs($user)->postJson(route('recipes.import'), [
@@ -42,13 +40,9 @@ it('imports a recipe from a url', function () {
         'ingredients' => [
             ['ingredient_id', 'name', 'quantity', 'unit', 'note'],
         ],
-        'photo_path',
-        'photo_url',
     ]);
     expect($response->json('name'))->toBe('Spaghetti Bolognese');
     expect($response->json('servings'))->toBe(4);
-    expect($response->json('photo_path'))->toBe('recipes/test-photo.jpg');
-    expect($response->json('photo_url'))->toBe('/storage/recipes/test-photo.jpg');
 });
 
 it('redirects unauthenticated users', function () {
@@ -112,8 +106,6 @@ it('matches existing ingredients case-insensitively', function () {
                 ['name' => 'olive oil', 'quantity' => '2', 'unit' => 'tbsp', 'note' => 'extra virgin'],
                 ['name' => 'Sourdough Bread', 'quantity' => '1', 'unit' => 'loaf', 'note' => null],
             ],
-            'photo_path' => null,
-            'photo_url' => null,
         ]);
 
     $response = $this->actingAs($user)->postJson(route('recipes.import'), [
@@ -151,8 +143,6 @@ it('returns null ingredient_id for unmatched ingredients', function () {
             'ingredients' => [
                 ['name' => 'Unknown Spice', 'quantity' => '1', 'unit' => 'tsp', 'note' => null],
             ],
-            'photo_path' => null,
-            'photo_url' => null,
         ]);
 
     $response = $this->actingAs($user)->postJson(route('recipes.import'), [
@@ -179,8 +169,6 @@ it('handles partial data from ai extraction', function () {
             'prep_time_minutes' => null,
             'cook_time_minutes' => null,
             'ingredients' => [],
-            'photo_path' => null,
-            'photo_url' => null,
         ]);
 
     $response = $this->actingAs($user)->postJson(route('recipes.import'), [
@@ -229,8 +217,6 @@ it('does not match ingredients from other users', function () {
             'ingredients' => [
                 ['name' => 'Butter', 'quantity' => '1', 'unit' => 'tbsp', 'note' => null],
             ],
-            'photo_path' => null,
-            'photo_url' => null,
         ]);
 
     $response = $this->actingAs($user)->postJson(route('recipes.import'), [

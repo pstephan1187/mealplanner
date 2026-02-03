@@ -64,8 +64,6 @@ interface ImportResponse {
     prep_time_minutes: number | null;
     cook_time_minutes: number | null;
     ingredients: ImportedIngredient[];
-    photo_url: string | null;
-    photo_path: string | null;
 }
 
 const showImportModal = ref(false);
@@ -88,8 +86,6 @@ const recipeFromImport = computed<Recipe | null>(() => {
         servings: data.servings,
         flavor_profile: data.flavor_profile ?? undefined,
         meal_types: data.meal_types ?? [],
-        photo_url: data.photo_url ?? null,
-        imported_photo_path: data.photo_path ?? null,
         prep_time_minutes: data.prep_time_minutes,
         cook_time_minutes: data.cook_time_minutes,
         ingredients: (data.ingredients ?? []).map((ing) => ({

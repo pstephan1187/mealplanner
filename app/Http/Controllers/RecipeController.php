@@ -66,14 +66,11 @@ class RecipeController extends Controller
         $ingredients = $data['ingredients'] ?? [];
 
         $recipe = $request->user()->recipes()->create(
-            Arr::except($data, ['ingredients', 'photo', 'imported_photo_path'])
+            Arr::except($data, ['ingredients', 'photo'])
         );
 
         if ($request->hasFile('photo')) {
             $recipe->photo_path = $this->storePhoto($request->file('photo'));
-            $recipe->save();
-        } elseif ($request->filled('imported_photo_path')) {
-            $recipe->photo_path = $request->validated('imported_photo_path');
             $recipe->save();
         }
 

@@ -211,12 +211,6 @@ onBeforeUnmount(() => {
                         Use a square photo up to 2048x2048 pixels.
                     </p>
                     <InputError :message="errors.photo" />
-                    <input
-                        v-if="recipe?.imported_photo_path"
-                        type="hidden"
-                        name="imported_photo_path"
-                        :value="recipe.imported_photo_path"
-                    />
                 </div>
             </CardContent>
         </Card>

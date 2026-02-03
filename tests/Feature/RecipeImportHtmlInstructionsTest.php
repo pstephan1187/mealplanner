@@ -21,8 +21,6 @@ it('passes html instructions through to the response intact', function () {
             'prep_time_minutes' => 5,
             'cook_time_minutes' => 10,
             'ingredients' => [],
-            'photo_path' => null,
-            'photo_url' => null,
         ]);
 
     $response = $this->actingAs($user)->postJson(route('recipes.import'), [
@@ -60,8 +58,6 @@ it('imports successfully with no images extracted', function () {
             'ingredients' => [
                 ['name' => 'Lettuce', 'quantity' => '1', 'unit' => 'head', 'note' => null],
             ],
-            'photo_path' => null,
-            'photo_url' => null,
         ]);
 
     $response = $this->actingAs($user)->postJson(route('recipes.import'), [
