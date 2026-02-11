@@ -1,3 +1,86 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Common Commands
+
+```bash
+# Development (runs server, queue, logs, vite concurrently)
+composer run dev
+
+# Build frontend assets
+npm run build
+
+# Run all tests
+php artisan test --compact
+
+# Run a single test file
+php artisan test --compact tests/Feature/RecipeSectionTest.php
+
+# Run a specific test by name
+php artisan test --compact --filter="can create a recipe with sections"
+
+# Format PHP code (run before finalizing changes)
+vendor/bin/pint --dirty
+
+# Format frontend code
+npm run format
+
+# Lint frontend code
+npm run lint
+
+# Generate Wayfinder routes/actions (auto-runs via Vite plugin in dev)
+php artisan wayfinder:generate
+```
+
+## Architecture Overview
+
+**Meal planning SPA**: Laravel 12 + Inertia v2 + Vue 3 + Tailwind v4, SQLite database.
+
+### Domain Model
+
+Users own Recipes, Ingredients, MealPlans, ShoppingLists, and GroceryStores. All user-scoped models use the `BelongsToCurrentUser` trait (`app/Models/Concerns/`) which provides `scopeCurrentUser()`.
+
+**Recipe structure** supports two modes:
+- **Flat**: ingredients attached directly to recipe (pivot `recipe_section_id` is NULL)
+- **Sectioned**: ingredients grouped under `RecipeSection` records (pivot `recipe_section_id` populated)
+
+The `ingredient_recipe` pivot table has a surrogate `id` PK and columns: `recipe_id`, `ingredient_id`, `recipe_section_id` (nullable), `quantity`, `unit`, `note`.
+
+**Meal plans** → have many `MealPlanRecipe` (date + meal_type + servings) → generate a `ShoppingList` with `ShoppingListItem` records. Shopping lists have three display modes: manual, alphabetical, store.
+
+**Grocery stores** → have many `GroceryStoreSection` records. Ingredients can be associated with a store/section. Shopping list items can override the ingredient's default store/section.
+
+### Key Backend Patterns
+
+- **Authorization**: `EnsuresOwnership` trait (`app/Http/Controllers/Concerns/`) validates resource ownership; returns 404 if unauthorized. Supports nested resources via `$throughRelationship`.
+- **Form Requests**: Always array-based rules (not string). Use `prepareForValidation()` for HTML sanitization via `Purifier::clean()`.
+- **Fractions**: `App\Support\FractionConverter` — `toDecimal()` for storage, `toFraction()` for display. Custom `Fraction` validation rule.
+- **Photo handling**: Recipes support file upload OR URL import. Photos are cropped to square via `spatie/image`, stored on `public` disk.
+- **Recipe import**: `prism-php/prism` is used for AI-powered recipe importing (URL → structured data).
+- **API Resources**: Use `whenLoaded()` and `whenPivotLoaded()` for conditional relationship data. `IngredientResource` converts quantities to fractions for display.
+
+### Key Frontend Patterns
+
+- **Forms**: Use Inertia `<Form>` component with native HTML `name` attributes (not `useForm`). Array notation for nested data: `:name="\`ingredients[${index}][ingredient_id]\`"`.
+- **Rich text**: TipTap editor with `v-model` + hidden `<input>` for form submission.
+- **Routing**: Wayfinder generates type-safe route functions. Import from `@/routes/` (named routes) or `@/actions/` (controller actions). Use `.form()` for `<Form>` attributes, `.url()` for URL strings.
+- **UI components**: shadcn/vue-style component library in `resources/js/components/ui/`. Uses `reka-ui` primitives, `class-variance-authority`, `tailwind-merge`.
+- **Composables**: Domain logic in `resources/js/composables/` (drag-drop, modals, sorting, store selection).
+- **Types**: Model interfaces in `resources/js/types/models.ts`. `ResourceCollection<T>` / `resolveCollection()` handle Laravel API response shapes.
+- **Layouts**: `AppLayout.vue` → `AppSidebarLayout.vue` (sidebar nav + content). Auth layouts in `resources/js/layouts/auth/`. Settings layout in `resources/js/layouts/settings/`.
+- **Themes**: CSS variable-based theming (default + blush-pink) with light/dark mode via `dark:` variant.
+
+### Testing Patterns
+
+- **Pest v4** with `RefreshDatabase`. Feature tests in `tests/Feature/`, browser tests in `tests/Browser/`.
+- Use `postJson()` (not `post()`) when testing validation errors — otherwise you get 302 redirect instead of 422.
+- Factory pattern: `Ingredient::factory()->for($user)->create()`.
+- Inertia assertions: `->assertInertia(fn ($page) => $page->component('recipes/Show')->has('recipe.data.sections', 1))`.
+- Known pre-existing failures in: `ResourceSerializationTest`, `ShoppingListItemControllerTest`, `ShoppingListPreferencesTest`.
+
+===
+
 <laravel-boost-guidelines>
 === foundation rules ===
 
@@ -8,7 +91,7 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 ## Foundational Context
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
-- php - 8.4.16
+- php - 8.4.17
 - inertiajs/inertia-laravel (INERTIA) - v2
 - laravel/fortify (FORTIFY) - v1
 - laravel/framework (LARAVEL) - v12
@@ -113,6 +196,13 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Enums
 - Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
+
+=== herd rules ===
+
+## Laravel Herd
+
+- The application is served by Laravel Herd and will be available at: `https?://[kebab-case-project-dir].test`. Use the `get-absolute-url` tool to generate URLs for the user to ensure valid URLs.
+- You must not run any commands to make the site available via HTTP(S). It is always available through Laravel Herd.
 
 === tests rules ===
 
