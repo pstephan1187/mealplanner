@@ -48,8 +48,13 @@ class Recipe extends Model
     public function ingredients(): BelongsToMany
     {
         return $this->belongsToMany(Ingredient::class)
-            ->withPivot(['quantity', 'unit', 'note'])
+            ->withPivot(['recipe_section_id', 'quantity', 'unit', 'note'])
             ->withTimestamps();
+    }
+
+    public function sections(): HasMany
+    {
+        return $this->hasMany(RecipeSection::class)->orderBy('sort_order');
     }
 
     public function mealPlanRecipes(): HasMany

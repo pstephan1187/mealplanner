@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -65,10 +66,9 @@ class RecipeController extends Controller
     public function store(StoreRecipeRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $ingredients = $data['ingredients'] ?? [];
 
         $recipe = $request->user()->recipes()->create(
-            Arr::except($data, ['ingredients', 'photo', 'photo_url'])
+            Arr::except($data, ['ingredients', 'sections', 'photo', 'photo_url'])
         );
 
         if ($request->hasFile('photo')) {
@@ -83,8 +83,10 @@ class RecipeController extends Controller
             }
         }
 
-        if ($ingredients !== []) {
-            $recipe->ingredients()->sync($this->formatIngredients($ingredients));
+        if (! empty($data['sections'])) {
+            $this->syncSections($recipe, $data['sections']);
+        } elseif (! empty($data['ingredients'])) {
+            $this->syncFlatIngredients($recipe, $data['ingredients']);
         }
 
         return redirect()->route('recipes.show', $recipe);
@@ -95,7 +97,7 @@ class RecipeController extends Controller
         $this->ensureOwnership($request, $recipe);
 
         return Inertia::render('recipes/Show', [
-            'recipe' => RecipeResource::make($recipe->load('ingredients')),
+            'recipe' => RecipeResource::make($recipe->load(['ingredients', 'sections.ingredients'])),
         ]);
     }
 
@@ -115,7 +117,7 @@ class RecipeController extends Controller
             ->get();
 
         return Inertia::render('recipes/Edit', [
-            'recipe' => RecipeResource::make($recipe->load('ingredients')),
+            'recipe' => RecipeResource::make($recipe->load(['ingredients', 'sections.ingredients'])),
             'ingredients' => IngredientResource::collection($ingredients),
             'groceryStores' => GroceryStoreResource::collection($groceryStores),
         ]);
@@ -126,9 +128,10 @@ class RecipeController extends Controller
         $this->ensureOwnership($request, $recipe);
 
         $data = $request->validated();
-        $shouldSyncIngredients = array_key_exists('ingredients', $data);
+        $hasSections = array_key_exists('sections', $data);
+        $hasIngredients = array_key_exists('ingredients', $data);
 
-        $recipe->fill(Arr::except($data, ['ingredients', 'photo', 'photo_url']));
+        $recipe->fill(Arr::except($data, ['ingredients', 'sections', 'photo', 'photo_url']));
 
         if ($request->hasFile('photo')) {
             $this->deletePhoto($recipe);
@@ -144,8 +147,23 @@ class RecipeController extends Controller
 
         $recipe->save();
 
-        if ($shouldSyncIngredients) {
-            $recipe->ingredients()->sync($this->formatIngredients($data['ingredients'] ?? []));
+        if ($hasSections) {
+            // Switching to sections: clear any flat ingredients first
+            DB::table('ingredient_recipe')
+                ->where('recipe_id', $recipe->id)
+                ->whereNull('recipe_section_id')
+                ->delete();
+
+            $this->syncSections($recipe, $data['sections']);
+        } elseif ($hasIngredients) {
+            // Switching to flat: delete sections (cascade clears section ingredients via nullOnDelete,
+            // then we clear those orphaned pivot rows too)
+            $recipe->sections()->delete();
+            DB::table('ingredient_recipe')
+                ->where('recipe_id', $recipe->id)
+                ->delete();
+
+            $this->syncFlatIngredients($recipe, $data['ingredients']);
         }
 
         return redirect()->route('recipes.show', $recipe);
@@ -163,21 +181,72 @@ class RecipeController extends Controller
 
     /**
      * @param  array<int, array<string, mixed>>  $ingredients
-     * @return array<int, array<string, mixed>>
      */
-    protected function formatIngredients(array $ingredients): array
+    protected function syncFlatIngredients(Recipe $recipe, array $ingredients): void
     {
-        return collect($ingredients)
-            ->mapWithKeys(function (array $ingredient): array {
-                return [
-                    $ingredient['ingredient_id'] => [
-                        'quantity' => FractionConverter::toDecimal((string) $ingredient['quantity']),
-                        'unit' => $ingredient['unit'],
-                        'note' => $ingredient['note'] ?? null,
-                    ],
-                ];
-            })
-            ->all();
+        DB::table('ingredient_recipe')
+            ->where('recipe_id', $recipe->id)
+            ->delete();
+
+        if ($ingredients === []) {
+            return;
+        }
+
+        $now = now();
+
+        $rows = array_map(fn (array $ingredient) => [
+            'recipe_id' => $recipe->id,
+            'ingredient_id' => $ingredient['ingredient_id'],
+            'recipe_section_id' => null,
+            'quantity' => FractionConverter::toDecimal((string) $ingredient['quantity']),
+            'unit' => $ingredient['unit'],
+            'note' => $ingredient['note'] ?? null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], $ingredients);
+
+        DB::table('ingredient_recipe')->insert($rows);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $sections
+     */
+    protected function syncSections(Recipe $recipe, array $sections): void
+    {
+        // Delete existing sections (cascades via FK nullOnDelete on pivot rows)
+        $recipe->sections()->delete();
+
+        // Clean up any orphaned pivot rows with null recipe_section_id
+        DB::table('ingredient_recipe')
+            ->where('recipe_id', $recipe->id)
+            ->delete();
+
+        $now = now();
+
+        foreach ($sections as $sectionData) {
+            $section = $recipe->sections()->create([
+                'name' => $sectionData['name'],
+                'sort_order' => $sectionData['sort_order'],
+                'instructions' => $sectionData['instructions'] ?? null,
+            ]);
+
+            $sectionIngredients = $sectionData['ingredients'] ?? [];
+
+            if ($sectionIngredients !== []) {
+                $rows = array_map(fn (array $ingredient) => [
+                    'recipe_id' => $recipe->id,
+                    'ingredient_id' => $ingredient['ingredient_id'],
+                    'recipe_section_id' => $section->id,
+                    'quantity' => FractionConverter::toDecimal((string) $ingredient['quantity']),
+                    'unit' => $ingredient['unit'],
+                    'note' => $ingredient['note'] ?? null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ], $sectionIngredients);
+
+                DB::table('ingredient_recipe')->insert($rows);
+            }
+        }
     }
 
     protected function storePhoto(UploadedFile $photo): string

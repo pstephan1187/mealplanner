@@ -36,6 +36,13 @@ interface IngredientRow {
     suggestions?: Array<{ id: number; name: string }>;
 }
 
+interface SectionRow {
+    name: string;
+    sort_order: number;
+    instructions: string;
+    ingredients: IngredientRow[];
+}
+
 interface Props {
     recipe?: Recipe | null;
     ingredients: IngredientOption[];
@@ -48,7 +55,9 @@ const props = defineProps<Props>();
 const localIngredients = ref<ComboboxOption[]>([...props.ingredients]);
 const localStores = ref<GroceryStore[]>([...props.groceryStores]);
 
-// Ingredient creation modal + store/section selection (via composable)
+// Track which section the ingredient creation modal was opened from (null = flat mode)
+const pendingSectionIndex = ref<number | null>(null);
+
 const {
     showIngredientModal,
     newIngredientName,
@@ -76,13 +85,44 @@ const {
         localIngredients.value.sort((a, b) => a.name.localeCompare(b.name));
 
         if (rowIndex !== null) {
-            ingredientRows.value[rowIndex].ingredient_id = ingredient.id;
+            if (pendingSectionIndex.value !== null) {
+                const section = sectionRows.value[pendingSectionIndex.value];
+                if (section?.ingredients[rowIndex]) {
+                    section.ingredients[rowIndex].ingredient_id = ingredient.id;
+                }
+            } else {
+                ingredientRows.value[rowIndex].ingredient_id = ingredient.id;
+            }
         }
+        pendingSectionIndex.value = null;
     },
 });
 
+// ─── Sections mode ───────────────────────────────────────────
+
+const hasSectionsFromRecipe = (props.recipe?.sections?.length ?? 0) > 0;
+const useSections = ref(hasSectionsFromRecipe);
+
+const sectionRows = ref<SectionRow[]>(
+    hasSectionsFromRecipe
+        ? props.recipe!.sections!.map((section) => ({
+              name: section.name,
+              sort_order: section.sort_order,
+              instructions: section.instructions ?? '',
+              ingredients: (section.ingredients ?? []).map((ing) => ({
+                  ingredient_id: ing.id || '',
+                  quantity: ing.pivot?.quantity?.toString() ?? '',
+                  unit: ing.pivot?.unit ?? '',
+                  note: ing.pivot?.note ?? '',
+              })),
+          }))
+        : [],
+);
+
+// ─── Flat ingredients ────────────────────────────────────────
+
 const ingredientRows = ref<IngredientRow[]>(
-    props.recipe?.ingredients?.length
+    !hasSectionsFromRecipe && props.recipe?.ingredients?.length
         ? props.recipe.ingredients.map((ingredient) => ({
               ingredient_id: ingredient.id || '',
               quantity: ingredient.pivot?.quantity?.toString() ?? '',
@@ -117,6 +157,8 @@ const handlePhotoUrlInput = () => {
     photoPreview.value = (photoUrlInput.value || props.recipe?.photo_url) ?? null;
 };
 
+// ─── Flat ingredient row management ──────────────────────────
+
 const addIngredientRow = () => {
     ingredientRows.value.push({
         ingredient_id: '',
@@ -129,6 +171,77 @@ const addIngredientRow = () => {
 const removeIngredientRow = (index: number) => {
     ingredientRows.value.splice(index, 1);
 };
+
+// ─── Section management ──────────────────────────────────────
+
+const enableSections = () => {
+    if (sectionRows.value.length === 0) {
+        sectionRows.value.push({
+            name: '',
+            sort_order: 0,
+            instructions: instructionsContent.value,
+            ingredients: [...ingredientRows.value],
+        });
+    }
+    ingredientRows.value = [];
+    instructionsContent.value = '';
+    useSections.value = true;
+};
+
+const disableSections = () => {
+    if (sectionRows.value.length > 0) {
+        const allIngredients = sectionRows.value.flatMap((s) => s.ingredients);
+        ingredientRows.value = allIngredients;
+        instructionsContent.value =
+            sectionRows.value
+                .filter((s) => s.instructions)
+                .map((s) => s.instructions)
+                .join('\n') || '';
+    }
+    sectionRows.value = [];
+    useSections.value = false;
+};
+
+const addSection = () => {
+    sectionRows.value.push({
+        name: '',
+        sort_order: sectionRows.value.length,
+        instructions: '',
+        ingredients: [],
+    });
+};
+
+const removeSection = (index: number) => {
+    sectionRows.value.splice(index, 1);
+    sectionRows.value.forEach((s, i) => (s.sort_order = i));
+};
+
+const addSectionIngredient = (sectionIndex: number) => {
+    sectionRows.value[sectionIndex].ingredients.push({
+        ingredient_id: '',
+        quantity: '',
+        unit: '',
+        note: '',
+    });
+};
+
+const removeSectionIngredient = (
+    sectionIndex: number,
+    ingredientIndex: number,
+) => {
+    sectionRows.value[sectionIndex].ingredients.splice(ingredientIndex, 1);
+};
+
+const openSectionIngredientModal = (
+    name: string,
+    sectionIndex: number,
+    ingredientIndex: number,
+) => {
+    pendingSectionIndex.value = sectionIndex;
+    openIngredientModal(name, ingredientIndex);
+};
+
+// ─── Ingredient resolution ───────────────────────────────────
 
 const showResolutionModal = ref(false);
 
@@ -165,6 +278,8 @@ function handleIngredientsResolved(
         }
     }
 }
+
+// ─── Photo handling ──────────────────────────────────────────
 
 const handlePhotoChange = (event: Event) => {
     const input = event.target as HTMLInputElement;
@@ -345,7 +460,8 @@ onBeforeUnmount(() => {
             </CardContent>
         </Card>
 
-        <Card>
+        <!-- ═══ Flat ingredients (no sections) ═══ -->
+        <Card v-if="!useSections">
             <CardHeader class="flex flex-row items-center justify-between">
                 <CardTitle>Ingredients</CardTitle>
                 <div class="flex items-center gap-2">
@@ -357,6 +473,14 @@ onBeforeUnmount(() => {
                         @click="showResolutionModal = true"
                     >
                         Resolve {{ unmatchedIngredients.length }} unmatched
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        @click="enableSections"
+                    >
+                        Use sections
                     </Button>
                     <Button
                         type="button"
@@ -394,7 +518,7 @@ onBeforeUnmount(() => {
                             "
                             :allow-create="true"
                             create-label="Create"
-                            @create="(name) => openIngredientModal(name, index)"
+                            @create="(name: string) => openIngredientModal(name, index)"
                         />
                         <p
                             v-if="
@@ -466,7 +590,8 @@ onBeforeUnmount(() => {
             </CardContent>
         </Card>
 
-        <Card>
+        <!-- ═══ Flat instructions (no sections) ═══ -->
+        <Card v-if="!useSections">
             <CardHeader>
                 <CardTitle>Instructions</CardTitle>
             </CardHeader>
@@ -480,6 +605,185 @@ onBeforeUnmount(() => {
                 <InputError :message="errors.instructions" />
             </CardContent>
         </Card>
+
+        <!-- ═══ Sections mode ═══ -->
+        <template v-if="useSections">
+            <Card>
+                <CardHeader class="flex flex-row items-center justify-between">
+                    <CardTitle>Recipe sections</CardTitle>
+                    <div class="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            @click="disableSections"
+                        >
+                            Remove sections
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            @click="addSection"
+                        >
+                            Add section
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <p class="text-sm text-muted-foreground">
+                        Group ingredients and instructions by component (e.g., "For the Crust", "For the Filling").
+                    </p>
+                    <InputError :message="errors.sections" />
+                </CardContent>
+            </Card>
+
+            <Card
+                v-for="(section, sIdx) in sectionRows"
+                :key="`section-${sIdx}`"
+            >
+                <CardHeader class="flex flex-row items-center justify-between">
+                    <div class="grid grow gap-2">
+                        <Label :for="`section-name-${sIdx}`">Section name</Label>
+                        <Input
+                            :id="`section-name-${sIdx}`"
+                            :name="`sections[${sIdx}][name]`"
+                            placeholder="For the crust"
+                            v-model="section.name"
+                            required
+                        />
+                        <InputError :message="errors[`sections.${sIdx}.name`]" />
+                    </div>
+                    <div class="ml-4 flex shrink-0 items-end">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            @click="removeSection(sIdx)"
+                            :aria-label="`Remove section ${sIdx + 1}`"
+                        >
+                            &times;
+                        </Button>
+                    </div>
+                    <input
+                        type="hidden"
+                        :name="`sections[${sIdx}][sort_order]`"
+                        :value="section.sort_order"
+                    />
+                </CardHeader>
+                <CardContent class="space-y-6">
+                    <!-- Section ingredients -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <Label class="text-base">Ingredients</Label>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                @click="addSectionIngredient(sIdx)"
+                            >
+                                Add ingredient
+                            </Button>
+                        </div>
+
+                        <div
+                            v-if="section.ingredients.length === 0"
+                            class="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground"
+                        >
+                            No ingredients in this section yet.
+                        </div>
+
+                        <div
+                            v-for="(row, iIdx) in section.ingredients"
+                            :key="`s${sIdx}-i${iIdx}`"
+                            class="grid gap-4 rounded-lg border border-border/70 p-4 md:grid-cols-[2fr_1fr_1fr_1fr_auto]"
+                        >
+                            <div class="grid gap-2">
+                                <Label :for="`s${sIdx}-ingredient-${iIdx}`">Ingredient</Label>
+                                <Combobox
+                                    v-model="row.ingredient_id"
+                                    :options="localIngredients"
+                                    :name="`sections[${sIdx}][ingredients][${iIdx}][ingredient_id]`"
+                                    placeholder="Select or create ingredient..."
+                                    :allow-create="true"
+                                    create-label="Create"
+                                    @create="(name: string) => openSectionIngredientModal(name, sIdx, iIdx)"
+                                />
+                                <InputError
+                                    :message="errors[`sections.${sIdx}.ingredients.${iIdx}.ingredient_id`]"
+                                />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label :for="`s${sIdx}-qty-${iIdx}`">Qty</Label>
+                                <Input
+                                    :id="`s${sIdx}-qty-${iIdx}`"
+                                    :name="`sections[${sIdx}][ingredients][${iIdx}][quantity]`"
+                                    placeholder="1/2"
+                                    v-model="row.quantity"
+                                />
+                                <InputError
+                                    :message="errors[`sections.${sIdx}.ingredients.${iIdx}.quantity`]"
+                                />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label :for="`s${sIdx}-unit-${iIdx}`">Unit</Label>
+                                <Input
+                                    :id="`s${sIdx}-unit-${iIdx}`"
+                                    :name="`sections[${sIdx}][ingredients][${iIdx}][unit]`"
+                                    placeholder="cups"
+                                    v-model="row.unit"
+                                />
+                                <InputError
+                                    :message="errors[`sections.${sIdx}.ingredients.${iIdx}.unit`]"
+                                />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label :for="`s${sIdx}-note-${iIdx}`">Note</Label>
+                                <Input
+                                    :id="`s${sIdx}-note-${iIdx}`"
+                                    :name="`sections[${sIdx}][ingredients][${iIdx}][note]`"
+                                    placeholder="divided"
+                                    v-model="row.note"
+                                />
+                                <InputError
+                                    :message="errors[`sections.${sIdx}.ingredients.${iIdx}.note`]"
+                                />
+                            </div>
+
+                            <div class="flex items-end">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    @click="removeSectionIngredient(sIdx, iIdx)"
+                                    :aria-label="`Remove ingredient ${iIdx + 1} from section ${sIdx + 1}`"
+                                >
+                                    &times;
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section instructions -->
+                    <div class="grid gap-2">
+                        <Label :for="`section-instructions-${sIdx}`">Instructions</Label>
+                        <input
+                            type="hidden"
+                            :name="`sections[${sIdx}][instructions]`"
+                            :value="section.instructions"
+                        />
+                        <RichTextEditor
+                            v-model="section.instructions"
+                            placeholder="Instructions for this section..."
+                        />
+                        <InputError :message="errors[`sections.${sIdx}.instructions`]" />
+                    </div>
+                </CardContent>
+            </Card>
+        </template>
 
         <!-- Ingredient Creation Modal -->
         <Dialog v-model:open="showIngredientModal">

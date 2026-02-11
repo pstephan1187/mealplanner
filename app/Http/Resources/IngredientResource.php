@@ -24,6 +24,7 @@ class IngredientResource extends JsonResource
             'grocery_store_section' => GroceryStoreSectionResource::make($this->whenLoaded('groceryStoreSection')),
             'pivot' => $this->whenPivotLoaded('ingredient_recipe', function (): array {
                 return [
+                    'recipe_section_id' => $this->pivot->recipe_section_id,
                     'quantity' => FractionConverter::toFraction((float) $this->pivot->quantity),
                     'unit' => $this->pivot->unit,
                     'note' => $this->pivot->note,

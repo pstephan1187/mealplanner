@@ -60,6 +60,7 @@ export interface Ingredient {
 // ---------------------------------------------------------------------------
 
 export interface RecipeIngredientPivot {
+    recipe_section_id?: number | null;
     quantity: string | number;
     unit: string;
     note?: string | null;
@@ -72,16 +73,26 @@ export interface RecipeIngredient {
     suggestions?: Array<{ id: number; name: string }>;
 }
 
+export interface RecipeSection {
+    id: number;
+    recipe_id: number;
+    name: string;
+    sort_order: number;
+    instructions?: string | null;
+    ingredients?: RecipeIngredient[];
+}
+
 export interface Recipe {
     id: number;
     name: string;
-    instructions?: string;
+    instructions?: string | null;
     servings?: number | null;
     flavor_profile?: string;
     photo_url?: string | null;
     prep_time_minutes?: number | null;
     cook_time_minutes?: number | null;
     ingredients?: RecipeIngredient[];
+    sections?: RecipeSection[];
 }
 
 // ---------------------------------------------------------------------------

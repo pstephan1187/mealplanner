@@ -41,6 +41,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 const totalTime = computed(
     () => (recipe.prep_time_minutes ?? 0) + (recipe.cook_time_minutes ?? 0),
 );
+
+const hasSections = computed(() => (recipe.sections?.length ?? 0) > 0);
 </script>
 
 <template>
@@ -151,7 +153,8 @@ const totalTime = computed(
                     </CardContent>
                 </Card>
 
-                <Card>
+                <!-- Flat ingredients (no sections) -->
+                <Card v-if="!hasSections">
                     <CardHeader>
                         <CardTitle>Ingredients</CardTitle>
                     </CardHeader>
@@ -187,9 +190,53 @@ const totalTime = computed(
                         </div>
                     </CardContent>
                 </Card>
+
+                <!-- Sectioned ingredients -->
+                <div v-else class="flex flex-col gap-6">
+                    <Card
+                        v-for="section in recipe.sections"
+                        :key="section.id"
+                    >
+                        <CardHeader>
+                            <CardTitle>{{ section.name }}</CardTitle>
+                        </CardHeader>
+                        <CardContent class="space-y-3">
+                            <div
+                                v-if="!section.ingredients?.length"
+                                class="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground"
+                            >
+                                No ingredients in this section.
+                            </div>
+                            <div
+                                v-for="ingredient in section.ingredients"
+                                :key="ingredient.id"
+                                class="flex items-start justify-between gap-4 rounded-lg border border-border/70 p-3 text-sm"
+                            >
+                                <div>
+                                    <p class="font-medium">
+                                        {{ ingredient.name }}
+                                    </p>
+                                    <p
+                                        v-if="ingredient.pivot?.note"
+                                        class="text-muted-foreground"
+                                    >
+                                        {{ ingredient.pivot.note }}
+                                    </p>
+                                </div>
+                                <div class="text-right text-muted-foreground">
+                                    <p>
+                                        {{ ingredient.pivot?.quantity ?? '-' }}
+                                        {{ ingredient.pivot?.unit }}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
 
-            <Card>
+            <!-- Flat instructions (no sections) -->
+            <Card v-if="!hasSections">
                 <CardHeader>
                     <CardTitle>Instructions</CardTitle>
                 </CardHeader>
@@ -200,6 +247,24 @@ const totalTime = computed(
                     />
                 </CardContent>
             </Card>
+
+            <!-- Sectioned instructions -->
+            <template v-if="hasSections">
+                <Card
+                    v-for="section in recipe.sections?.filter(s => s.instructions)"
+                    :key="`instructions-${section.id}`"
+                >
+                    <CardHeader>
+                        <CardTitle>{{ section.name }} &mdash; Instructions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div
+                            class="prose prose-sm max-w-none text-muted-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary"
+                            v-html="section.instructions"
+                        />
+                    </CardContent>
+                </Card>
+            </template>
         </div>
     </AppLayout>
 </template>

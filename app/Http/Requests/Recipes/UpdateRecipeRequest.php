@@ -16,6 +16,16 @@ class UpdateRecipeRequest extends FormRequest
                 'instructions' => Purifier::clean($this->input('instructions')),
             ]);
         }
+
+        if ($this->has('sections')) {
+            $sections = $this->input('sections', []);
+            foreach ($sections as $index => $section) {
+                if (! empty($section['instructions'])) {
+                    $sections[$index]['instructions'] = Purifier::clean($section['instructions']);
+                }
+            }
+            $this->merge(['sections' => $sections]);
+        }
     }
 
     /**
@@ -27,18 +37,27 @@ class UpdateRecipeRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'instructions' => ['sometimes', 'string'],
+            'instructions' => ['sometimes', 'nullable', 'string'],
             'servings' => ['sometimes', 'integer', 'min:1'],
             'flavor_profile' => ['sometimes', 'string', 'max:255'],
             'photo' => ['sometimes', 'nullable', 'image', 'prohibits:photo_url'],
             'photo_url' => ['sometimes', 'nullable', 'url:http,https', 'prohibits:photo'],
             'prep_time_minutes' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'cook_time_minutes' => ['sometimes', 'nullable', 'integer', 'min:0'],
-            'ingredients' => ['sometimes', 'array'],
+            'ingredients' => ['sometimes', 'array', 'prohibits:sections'],
             'ingredients.*.ingredient_id' => ['required', 'integer', 'exists:ingredients,id'],
             'ingredients.*.quantity' => ['required', new Fraction],
             'ingredients.*.unit' => ['required', 'string', 'max:50'],
             'ingredients.*.note' => ['nullable', 'string', 'max:255'],
+            'sections' => ['sometimes', 'array', 'prohibits:ingredients'],
+            'sections.*.name' => ['required', 'string', 'max:255'],
+            'sections.*.sort_order' => ['required', 'integer', 'min:0'],
+            'sections.*.instructions' => ['nullable', 'string'],
+            'sections.*.ingredients' => ['nullable', 'array'],
+            'sections.*.ingredients.*.ingredient_id' => ['required', 'integer', 'exists:ingredients,id'],
+            'sections.*.ingredients.*.quantity' => ['required', new Fraction],
+            'sections.*.ingredients.*.unit' => ['required', 'string', 'max:50'],
+            'sections.*.ingredients.*.note' => ['nullable', 'string', 'max:255'],
         ];
     }
 }
