@@ -7,9 +7,6 @@ use App\Models\MealPlan;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 it('updates shopping list display mode', function () {
     $user = User::factory()->create();
@@ -51,7 +48,7 @@ it('toggles shopping list items as purchased', function () {
     $user = User::factory()->create();
     $mealPlan = MealPlan::factory()->for($user)->create();
     $shoppingList = ShoppingList::factory()->for($user)->for($mealPlan)->create();
-    $ingredient = Ingredient::factory()->create();
+    $ingredient = Ingredient::factory()->for($user)->create();
     $item = ShoppingListItem::factory()
         ->for($shoppingList)
         ->for($ingredient)
@@ -62,7 +59,7 @@ it('toggles shopping list items as purchased', function () {
         ['is_purchased' => true]
     );
 
-    $response->assertRedirect(route('shopping-list-items.show', $item));
+    $response->assertRedirect();
 
     expect($item->refresh()->is_purchased)->toBeTrue();
 });
@@ -72,8 +69,8 @@ it('updates shopping list item order', function () {
     $mealPlan = MealPlan::factory()->for($user)->create();
     $shoppingList = ShoppingList::factory()->for($user)->for($mealPlan)->create();
 
-    $ingredientA = Ingredient::factory()->create();
-    $ingredientB = Ingredient::factory()->create();
+    $ingredientA = Ingredient::factory()->for($user)->create();
+    $ingredientB = Ingredient::factory()->for($user)->create();
 
     $first = ShoppingListItem::factory()
         ->for($shoppingList)

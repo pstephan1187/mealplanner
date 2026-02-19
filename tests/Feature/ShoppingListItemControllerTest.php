@@ -10,7 +10,7 @@ it('stores shopping list items', function () {
     $user = User::factory()->create();
     $mealPlan = MealPlan::factory()->for($user)->create();
     $shoppingList = ShoppingList::factory()->for($user)->for($mealPlan)->create();
-    $ingredient = Ingredient::factory()->create();
+    $ingredient = Ingredient::factory()->for($user)->create();
 
     $response = $this->actingAs($user)->post(route('shopping-list-items.store'), [
         'shopping_list_id' => $shoppingList->id,
@@ -34,8 +34,8 @@ it('updates shopping list items', function () {
     $user = User::factory()->create();
     $mealPlan = MealPlan::factory()->for($user)->create();
     $shoppingList = ShoppingList::factory()->for($user)->for($mealPlan)->create();
-    $ingredientA = Ingredient::factory()->create();
-    $ingredientB = Ingredient::factory()->create();
+    $ingredientA = Ingredient::factory()->for($user)->create();
+    $ingredientB = Ingredient::factory()->for($user)->create();
 
     $item = ShoppingListItem::factory()
         ->for($shoppingList)
@@ -84,14 +84,15 @@ it('rejects storing items for other users lists', function () {
     $shoppingList = ShoppingList::factory()->create();
     $ingredient = Ingredient::factory()->create();
 
-    $response = $this->actingAs($user)->post(route('shopping-list-items.store'), [
+    $response = $this->actingAs($user)->postJson(route('shopping-list-items.store'), [
         'shopping_list_id' => $shoppingList->id,
         'ingredient_id' => $ingredient->id,
         'quantity' => 1,
         'unit' => 'cup',
     ]);
 
-    $response->assertNotFound();
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['shopping_list_id', 'ingredient_id']);
 });
 
 it('only shows current user ingredients on create page', function () {

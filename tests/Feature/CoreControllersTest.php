@@ -18,7 +18,7 @@ it('stores recipes with photos and ingredients', function () {
     Storage::fake('public');
 
     $user = User::factory()->create();
-    $ingredient = Ingredient::factory()->create();
+    $ingredient = Ingredient::factory()->for($user)->create();
 
     $payload = [
         'name' => 'Honey Garlic Salmon',

@@ -43,7 +43,12 @@ it('resources omit timestamps', function (string $resourceClass, string $modelCl
 ]);
 
 it('defines form request rules', function (string $requestClass, array $keys) {
-    $rules = (new $requestClass)->rules();
+    $user = \App\Models\User::factory()->create();
+
+    $request = new $requestClass;
+    $request->setUserResolver(fn () => $user);
+
+    $rules = $request->rules();
 
     expect($rules)->toHaveKeys($keys);
 })->with([
