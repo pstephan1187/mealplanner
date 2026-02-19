@@ -13,8 +13,8 @@ it('updates recipes with new photos and ingredients', function () {
     Storage::fake('public');
 
     $user = User::factory()->create();
-    $ingredientA = Ingredient::factory()->create();
-    $ingredientB = Ingredient::factory()->create();
+    $ingredientA = Ingredient::factory()->for($user)->create();
+    $ingredientB = Ingredient::factory()->for($user)->create();
 
     $recipe = Recipe::factory()->for($user)->create([
         'name' => 'Old Recipe',
@@ -96,6 +96,78 @@ it('prevents editing recipes for other users', function () {
     ]);
 
     $response->assertNotFound();
+});
+
+it('rejects creating a recipe with another users ingredient', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $otherIngredient = Ingredient::factory()->for($otherUser)->create();
+
+    $response = $this->actingAs($user)->postJson(route('recipes.store'), [
+        'name' => 'Test Recipe',
+        'instructions' => 'Test instructions',
+        'servings' => 4,
+        'flavor_profile' => 'Savory',
+        'ingredients' => [
+            [
+                'ingredient_id' => $otherIngredient->id,
+                'quantity' => '1',
+                'unit' => 'cup',
+            ],
+        ],
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['ingredients.0.ingredient_id']);
+});
+
+it('rejects updating a recipe with another users ingredient', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $otherIngredient = Ingredient::factory()->for($otherUser)->create();
+    $recipe = Recipe::factory()->for($user)->create();
+
+    $response = $this->actingAs($user)->patchJson(route('recipes.update', $recipe), [
+        'ingredients' => [
+            [
+                'ingredient_id' => $otherIngredient->id,
+                'quantity' => '1',
+                'unit' => 'cup',
+            ],
+        ],
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['ingredients.0.ingredient_id']);
+});
+
+it('rejects creating a recipe section with another users ingredient', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $otherIngredient = Ingredient::factory()->for($otherUser)->create();
+
+    $response = $this->actingAs($user)->postJson(route('recipes.store'), [
+        'name' => 'Test Recipe',
+        'servings' => 4,
+        'flavor_profile' => 'Savory',
+        'sections' => [
+            [
+                'name' => 'Section 1',
+                'sort_order' => 0,
+                'instructions' => null,
+                'ingredients' => [
+                    [
+                        'ingredient_id' => $otherIngredient->id,
+                        'quantity' => '1',
+                        'unit' => 'cup',
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['sections.0.ingredients.0.ingredient_id']);
 });
 
 it('prevents deleting recipes for other users', function () {
