@@ -94,6 +94,44 @@ it('rejects storing items for other users lists', function () {
     $response->assertNotFound();
 });
 
+it('only shows current user ingredients on create page', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $myIngredient = Ingredient::factory()->for($user)->create(['name' => 'My Salt']);
+    $otherIngredient = Ingredient::factory()->for($otherUser)->create(['name' => 'Other Pepper']);
+
+    $response = $this->actingAs($user)->get(route('shopping-list-items.create'));
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn ($page) => $page
+        ->component('shopping-list-items/Create')
+        ->has('ingredients.data', 1)
+        ->where('ingredients.data.0.name', 'My Salt')
+    );
+});
+
+it('only shows current user ingredients on edit page', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $myIngredient = Ingredient::factory()->for($user)->create(['name' => 'My Salt']);
+    $otherIngredient = Ingredient::factory()->for($otherUser)->create(['name' => 'Other Pepper']);
+
+    $mealPlan = MealPlan::factory()->for($user)->create();
+    $shoppingList = ShoppingList::factory()->for($user)->for($mealPlan)->create();
+    $item = ShoppingListItem::factory()->for($shoppingList)->for($myIngredient)->create();
+
+    $response = $this->actingAs($user)->get(route('shopping-list-items.edit', $item));
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn ($page) => $page
+        ->component('shopping-list-items/Edit')
+        ->has('ingredients.data', 1)
+        ->where('ingredients.data.0.name', 'My Salt')
+    );
+});
+
 it('prevents updating items for other users', function () {
     $user = User::factory()->create();
     $item = ShoppingListItem::factory()->create();

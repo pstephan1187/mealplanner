@@ -44,6 +44,7 @@ class ShoppingListItemController extends Controller
             ->get();
 
         $ingredients = Ingredient::query()
+            ->currentUser()
             ->orderBy('name')
             ->get();
 
@@ -82,6 +83,7 @@ class ShoppingListItemController extends Controller
             ->get();
 
         $ingredients = Ingredient::query()
+            ->currentUser()
             ->orderBy('name')
             ->get();
 
