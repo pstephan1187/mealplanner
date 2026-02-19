@@ -35,6 +35,7 @@ class RecipeController extends Controller
         $recipes = Recipe::query()
             ->currentUser()
             ->with('ingredients')
+            ->withCount('sections')
             ->latest()
             ->paginate();
 

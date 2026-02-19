@@ -18,7 +18,6 @@ import { Label } from '@/components/ui/label';
 import { apiFetch } from '@/lib/utils';
 import type { GroceryStore } from '@/types/models';
 
-
 export interface UnmatchedIngredient {
     rowIndex: number;
     name: string;
@@ -91,7 +90,9 @@ const newCount = computed(
     () => rows.value.filter((r) => r.mode === 'create').length,
 );
 const matchedCount = computed(
-    () => rows.value.filter((r) => r.mode === 'match' && r.matchedId !== '').length,
+    () =>
+        rows.value.filter((r) => r.mode === 'match' && r.matchedId !== '')
+            .length,
 );
 
 const canSave = computed(() => {
@@ -173,11 +174,8 @@ async function handleSave() {
 </script>
 
 <template>
-    <Dialog
-        :open="props.open"
-        @update:open="(val) => emit('update:open', val)"
-    >
-        <DialogContent class="sm:max-w-2xl max-h-[85vh] flex flex-col">
+    <Dialog :open="props.open" @update:open="(val) => emit('update:open', val)">
+        <DialogContent class="flex max-h-[85vh] flex-col sm:max-w-2xl">
             <DialogHeader>
                 <DialogTitle>Resolve unmatched ingredients</DialogTitle>
                 <DialogDescription>
@@ -186,11 +184,17 @@ async function handleSave() {
                 </DialogDescription>
             </DialogHeader>
 
-            <div v-if="rows.length > 0 && unmatchedIngredients.length === rows.length" class="flex-1 overflow-y-auto space-y-4 py-4">
+            <div
+                v-if="
+                    rows.length > 0 &&
+                    unmatchedIngredients.length === rows.length
+                "
+                class="flex-1 space-y-4 overflow-y-auto py-4"
+            >
                 <div
                     v-for="(row, index) in rows"
                     :key="index"
-                    class="rounded-lg border border-border p-4 space-y-3"
+                    class="space-y-3 rounded-lg border border-border p-4"
                 >
                     <div class="flex items-baseline justify-between gap-4">
                         <div>
@@ -218,12 +222,10 @@ async function handleSave() {
                             <Button
                                 type="button"
                                 :variant="
-                                    row.mode === 'match'
-                                        ? 'secondary'
-                                        : 'ghost'
+                                    row.mode === 'match' ? 'secondary' : 'ghost'
                                 "
                                 size="sm"
-                                class="h-7 text-xs px-2"
+                                class="h-7 px-2 text-xs"
                                 @click="row.mode = 'match'"
                             >
                                 Match existing
@@ -236,7 +238,7 @@ async function handleSave() {
                                         : 'ghost'
                                 "
                                 size="sm"
-                                class="h-7 text-xs px-2"
+                                class="h-7 px-2 text-xs"
                                 @click="row.mode = 'create'"
                             >
                                 Create new
@@ -288,10 +290,7 @@ async function handleSave() {
                 <DialogClose as-child>
                     <Button variant="secondary">Cancel</Button>
                 </DialogClose>
-                <Button
-                    @click="handleSave"
-                    :disabled="saving || !canSave"
-                >
+                <Button @click="handleSave" :disabled="saving || !canSave">
                     {{ saving ? 'Saving...' : saveLabel }}
                 </Button>
             </DialogFooter>

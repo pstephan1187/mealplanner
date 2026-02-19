@@ -93,6 +93,7 @@ export interface Recipe {
     cook_time_minutes?: number | null;
     ingredients?: RecipeIngredient[];
     sections?: RecipeSection[];
+    sections_count?: number;
 }
 
 // ---------------------------------------------------------------------------

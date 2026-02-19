@@ -29,8 +29,8 @@ it('creates shopping lists from meal plans and updates items', function (string 
         'end_date' => '2026-01-07',
     ]);
 
-    $ingredientA = Ingredient::factory()->create(['name' => 'Onion']);
-    $ingredientB = Ingredient::factory()->create(['name' => 'Tomato']);
+    $ingredientA = Ingredient::factory()->for($user)->create(['name' => 'Onion']);
+    $ingredientB = Ingredient::factory()->for($user)->create(['name' => 'Tomato']);
 
     $recipe = Recipe::factory()->for($user)->create([
         'name' => 'Salsa Bowl',

@@ -102,6 +102,7 @@ const {
 
 const hasSectionsFromRecipe = (props.recipe?.sections?.length ?? 0) > 0;
 const useSections = ref(hasSectionsFromRecipe);
+const showRemoveSectionsDialog = ref(false);
 
 const sectionRows = ref<SectionRow[]>(
     hasSectionsFromRecipe
@@ -129,7 +130,9 @@ const ingredientRows = ref<IngredientRow[]>(
               unit: ingredient.pivot?.unit ?? '',
               note: ingredient.pivot?.note ?? '',
               importedName:
-                  !ingredient.id && ingredient.name ? ingredient.name : undefined,
+                  !ingredient.id && ingredient.name
+                      ? ingredient.name
+                      : undefined,
               suggestions: ingredient.suggestions ?? [],
           }))
         : [],
@@ -154,7 +157,8 @@ const switchPhotoMode = (mode: 'upload' | 'url') => {
 };
 
 const handlePhotoUrlInput = () => {
-    photoPreview.value = (photoUrlInput.value || props.recipe?.photo_url) ?? null;
+    photoPreview.value =
+        (photoUrlInput.value || props.recipe?.photo_url) ?? null;
 };
 
 // ─── Flat ingredient row management ──────────────────────────
@@ -272,9 +276,7 @@ function handleIngredientsResolved(
                 id: resolved.id,
                 name: resolved.name,
             });
-            localIngredients.value.sort((a, b) =>
-                a.name.localeCompare(b.name),
-            );
+            localIngredients.value.sort((a, b) => a.name.localeCompare(b.name));
         }
     }
 }
@@ -371,7 +373,9 @@ onBeforeUnmount(() => {
                     <div class="flex gap-1 rounded-md bg-muted p-1">
                         <Button
                             type="button"
-                            :variant="photoMode === 'upload' ? 'secondary' : 'ghost'"
+                            :variant="
+                                photoMode === 'upload' ? 'secondary' : 'ghost'
+                            "
                             size="sm"
                             class="flex-1"
                             @click="switchPhotoMode('upload')"
@@ -380,7 +384,9 @@ onBeforeUnmount(() => {
                         </Button>
                         <Button
                             type="button"
-                            :variant="photoMode === 'url' ? 'secondary' : 'ghost'"
+                            :variant="
+                                photoMode === 'url' ? 'secondary' : 'ghost'
+                            "
                             size="sm"
                             class="flex-1"
                             @click="switchPhotoMode('url')"
@@ -431,9 +437,7 @@ onBeforeUnmount(() => {
             </CardHeader>
             <CardContent class="grid gap-6 md:grid-cols-2">
                 <div class="grid gap-2">
-                    <Label for="prep_time_minutes"
-                        >Prep time (minutes)</Label
-                    >
+                    <Label for="prep_time_minutes">Prep time (minutes)</Label>
                     <Input
                         id="prep_time_minutes"
                         name="prep_time_minutes"
@@ -445,9 +449,7 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="cook_time_minutes"
-                        >Cook time (minutes)</Label
-                    >
+                    <Label for="cook_time_minutes">Cook time (minutes)</Label>
                     <Input
                         id="cook_time_minutes"
                         name="cook_time_minutes"
@@ -518,16 +520,17 @@ onBeforeUnmount(() => {
                             "
                             :allow-create="true"
                             create-label="Create"
-                            @create="(name: string) => openIngredientModal(name, index)"
+                            @create="
+                                (name: string) =>
+                                    openIngredientModal(name, index)
+                            "
                         />
                         <p
-                            v-if="
-                                row.importedName && row.ingredient_id === ''
-                            "
+                            v-if="row.importedName && row.ingredient_id === ''"
                             class="text-xs text-muted-foreground"
                         >
-                            Imported as "{{ row.importedName }}" — select
-                            or create a matching ingredient
+                            Imported as "{{ row.importedName }}" — select or
+                            create a matching ingredient
                         </p>
                         <InputError
                             :message="
@@ -597,7 +600,11 @@ onBeforeUnmount(() => {
             </CardHeader>
             <CardContent class="grid gap-2">
                 <Label for="instructions">Step-by-step directions</Label>
-                <input type="hidden" name="instructions" :value="instructionsContent" />
+                <input
+                    type="hidden"
+                    name="instructions"
+                    :value="instructionsContent"
+                />
                 <RichTextEditor
                     v-model="instructionsContent"
                     placeholder="Write clear steps so you can cook without thinking."
@@ -616,10 +623,38 @@ onBeforeUnmount(() => {
                             type="button"
                             variant="outline"
                             size="sm"
-                            @click="disableSections"
+                            @click="showRemoveSectionsDialog = true"
                         >
                             Remove sections
                         </Button>
+                        <Dialog v-model:open="showRemoveSectionsDialog">
+                            <DialogContent>
+                                <DialogHeader class="space-y-3">
+                                    <DialogTitle>Remove sections?</DialogTitle>
+                                    <DialogDescription>
+                                        Section names and instructions will be
+                                        lost. Ingredients will be moved to a
+                                        single flat list.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter class="gap-2">
+                                    <DialogClose as-child>
+                                        <Button variant="secondary">
+                                            Cancel
+                                        </Button>
+                                    </DialogClose>
+                                    <Button
+                                        variant="destructive"
+                                        @click="
+                                            disableSections();
+                                            showRemoveSectionsDialog = false;
+                                        "
+                                    >
+                                        Remove sections
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                         <Button
                             type="button"
                             variant="secondary"
@@ -632,7 +667,8 @@ onBeforeUnmount(() => {
                 </CardHeader>
                 <CardContent>
                     <p class="text-sm text-muted-foreground">
-                        Group ingredients and instructions by component (e.g., "For the Crust", "For the Filling").
+                        Group ingredients and instructions by component (e.g.,
+                        "For the Crust", "For the Filling").
                     </p>
                     <InputError :message="errors.sections" />
                 </CardContent>
@@ -644,7 +680,9 @@ onBeforeUnmount(() => {
             >
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div class="grid grow gap-2">
-                        <Label :for="`section-name-${sIdx}`">Section name</Label>
+                        <Label :for="`section-name-${sIdx}`"
+                            >Section name</Label
+                        >
                         <Input
                             :id="`section-name-${sIdx}`"
                             :name="`sections[${sIdx}][name]`"
@@ -652,7 +690,9 @@ onBeforeUnmount(() => {
                             v-model="section.name"
                             required
                         />
-                        <InputError :message="errors[`sections.${sIdx}.name`]" />
+                        <InputError
+                            :message="errors[`sections.${sIdx}.name`]"
+                        />
                     </div>
                     <div class="ml-4 flex shrink-0 items-end">
                         <Button
@@ -699,7 +739,9 @@ onBeforeUnmount(() => {
                             class="grid gap-4 rounded-lg border border-border/70 p-4 md:grid-cols-[2fr_1fr_1fr_1fr_auto]"
                         >
                             <div class="grid gap-2">
-                                <Label :for="`s${sIdx}-ingredient-${iIdx}`">Ingredient</Label>
+                                <Label :for="`s${sIdx}-ingredient-${iIdx}`"
+                                    >Ingredient</Label
+                                >
                                 <Combobox
                                     v-model="row.ingredient_id"
                                     :options="localIngredients"
@@ -707,10 +749,21 @@ onBeforeUnmount(() => {
                                     placeholder="Select or create ingredient..."
                                     :allow-create="true"
                                     create-label="Create"
-                                    @create="(name: string) => openSectionIngredientModal(name, sIdx, iIdx)"
+                                    @create="
+                                        (name: string) =>
+                                            openSectionIngredientModal(
+                                                name,
+                                                sIdx,
+                                                iIdx,
+                                            )
+                                    "
                                 />
                                 <InputError
-                                    :message="errors[`sections.${sIdx}.ingredients.${iIdx}.ingredient_id`]"
+                                    :message="
+                                        errors[
+                                            `sections.${sIdx}.ingredients.${iIdx}.ingredient_id`
+                                        ]
+                                    "
                                 />
                             </div>
 
@@ -723,12 +776,18 @@ onBeforeUnmount(() => {
                                     v-model="row.quantity"
                                 />
                                 <InputError
-                                    :message="errors[`sections.${sIdx}.ingredients.${iIdx}.quantity`]"
+                                    :message="
+                                        errors[
+                                            `sections.${sIdx}.ingredients.${iIdx}.quantity`
+                                        ]
+                                    "
                                 />
                             </div>
 
                             <div class="grid gap-2">
-                                <Label :for="`s${sIdx}-unit-${iIdx}`">Unit</Label>
+                                <Label :for="`s${sIdx}-unit-${iIdx}`"
+                                    >Unit</Label
+                                >
                                 <Input
                                     :id="`s${sIdx}-unit-${iIdx}`"
                                     :name="`sections[${sIdx}][ingredients][${iIdx}][unit]`"
@@ -736,12 +795,18 @@ onBeforeUnmount(() => {
                                     v-model="row.unit"
                                 />
                                 <InputError
-                                    :message="errors[`sections.${sIdx}.ingredients.${iIdx}.unit`]"
+                                    :message="
+                                        errors[
+                                            `sections.${sIdx}.ingredients.${iIdx}.unit`
+                                        ]
+                                    "
                                 />
                             </div>
 
                             <div class="grid gap-2">
-                                <Label :for="`s${sIdx}-note-${iIdx}`">Note</Label>
+                                <Label :for="`s${sIdx}-note-${iIdx}`"
+                                    >Note</Label
+                                >
                                 <Input
                                     :id="`s${sIdx}-note-${iIdx}`"
                                     :name="`sections[${sIdx}][ingredients][${iIdx}][note]`"
@@ -749,7 +814,11 @@ onBeforeUnmount(() => {
                                     v-model="row.note"
                                 />
                                 <InputError
-                                    :message="errors[`sections.${sIdx}.ingredients.${iIdx}.note`]"
+                                    :message="
+                                        errors[
+                                            `sections.${sIdx}.ingredients.${iIdx}.note`
+                                        ]
+                                    "
                                 />
                             </div>
 
@@ -769,7 +838,9 @@ onBeforeUnmount(() => {
 
                     <!-- Section instructions -->
                     <div class="grid gap-2">
-                        <Label :for="`section-instructions-${sIdx}`">Instructions</Label>
+                        <Label :for="`section-instructions-${sIdx}`"
+                            >Instructions</Label
+                        >
                         <input
                             type="hidden"
                             :name="`sections[${sIdx}][instructions]`"
@@ -779,7 +850,9 @@ onBeforeUnmount(() => {
                             v-model="section.instructions"
                             placeholder="Instructions for this section..."
                         />
-                        <InputError :message="errors[`sections.${sIdx}.instructions`]" />
+                        <InputError
+                            :message="errors[`sections.${sIdx}.instructions`]"
+                        />
                     </div>
                 </CardContent>
             </Card>

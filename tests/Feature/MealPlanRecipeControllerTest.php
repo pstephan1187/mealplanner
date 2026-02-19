@@ -67,16 +67,17 @@ it('prevents updating meal plan recipes for other users', function () {
     $response->assertNotFound();
 });
 
-it('deletes meal plan recipes for the owner', function () {
+it('deletes meal plan recipes and redirects to parent meal plan', function () {
     $user = User::factory()->create();
+    $mealPlan = MealPlan::factory()->for($user)->create();
     $mealPlanRecipe = MealPlanRecipe::factory()
-        ->for(MealPlan::factory()->for($user))
+        ->for($mealPlan)
         ->for(Recipe::factory()->for($user))
         ->create();
 
     $response = $this->actingAs($user)->delete(route('meal-plan-recipes.destroy', $mealPlanRecipe));
 
-    $response->assertRedirect(route('meal-plan-recipes.index'));
+    $response->assertRedirect(route('meal-plans.show', $mealPlan));
 
     expect(MealPlanRecipe::query()->whereKey($mealPlanRecipe->id)->exists())->toBeFalse();
 });

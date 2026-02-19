@@ -162,7 +162,7 @@ it('populates shopping lists from meal plan recipes', function () {
         'end_date' => '2026-01-07',
     ]);
 
-    $ingredient = Ingredient::factory()->create(['name' => 'Garlic']);
+    $ingredient = Ingredient::factory()->for($user)->create(['name' => 'Garlic']);
 
     $recipeA = Recipe::factory()->for($user)->create(['servings' => 4]);
     $recipeA->ingredients()->attach($ingredient->id, [
@@ -216,8 +216,8 @@ it('aggregates fractional ingredient quantities across meal plan recipes', funct
         'end_date' => '2026-02-07',
     ]);
 
-    $flour = Ingredient::factory()->create(['name' => 'Flour']);
-    $butter = Ingredient::factory()->create(['name' => 'Butter']);
+    $flour = Ingredient::factory()->for($user)->create(['name' => 'Flour']);
+    $butter = Ingredient::factory()->for($user)->create(['name' => 'Butter']);
 
     // Recipe A: base 2 servings — 1/2 cup flour, 1/4 cup butter
     $recipeA = Recipe::factory()->for($user)->create(['servings' => 2]);

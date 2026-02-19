@@ -30,6 +30,7 @@ class RecipeResource extends JsonResource
             'cook_time_minutes' => $this->cook_time_minutes,
             'ingredients' => IngredientResource::collection($this->whenLoaded('ingredients')),
             'sections' => RecipeSectionResource::collection($this->whenLoaded('sections')),
+            'sections_count' => $this->whenCounted('sections'),
         ];
     }
 }

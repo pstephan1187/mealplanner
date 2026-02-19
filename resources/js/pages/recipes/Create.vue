@@ -22,7 +22,6 @@ import { create, index as recipesIndex, store } from '@/routes/recipes';
 import { type BreadcrumbItem } from '@/types';
 import type { GroceryStore, Ingredient, Recipe } from '@/types/models';
 
-
 import RecipeForm from './Partials/RecipeForm.vue';
 
 type IngredientOption = Pick<Ingredient, 'id' | 'name'>;
@@ -208,7 +207,8 @@ const importRecipe = async () => {
                 <DialogHeader>
                     <DialogTitle>Import from URL</DialogTitle>
                     <DialogDescription>
-                        Paste a recipe URL and we'll extract the details for you.
+                        Paste a recipe URL and we'll extract the details for
+                        you.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -222,10 +222,7 @@ const importRecipe = async () => {
                             placeholder="https://example.com/recipe"
                             @keydown.enter.prevent="importRecipe"
                         />
-                        <p
-                            v-if="importError"
-                            class="text-sm text-destructive"
-                        >
+                        <p v-if="importError" class="text-sm text-destructive">
                             {{ importError }}
                         </p>
                     </div>

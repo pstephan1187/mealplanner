@@ -82,6 +82,13 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 {{ recipe.ingredients?.length ?? 0 }}
                             </span>
                         </div>
+                        <div
+                            v-if="recipe.sections_count"
+                            class="flex items-center justify-between"
+                        >
+                            <span>Sections</span>
+                            <span>{{ recipe.sections_count }}</span>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

@@ -298,3 +298,170 @@ it('loads sections on edit page', function () {
         ->where('recipe.data.sections.0.name', 'Base')
     );
 });
+
+it('converts a sectioned recipe back to flat', function () {
+    $user = User::factory()->create();
+    $ingredientA = Ingredient::factory()->for($user)->create();
+    $ingredientB = Ingredient::factory()->for($user)->create();
+
+    $recipe = Recipe::factory()->for($user)->create();
+    $section = RecipeSection::factory()->for($recipe)->create(['name' => 'Sauce', 'sort_order' => 0]);
+
+    DB::table('ingredient_recipe')->insert([
+        'recipe_id' => $recipe->id,
+        'ingredient_id' => $ingredientA->id,
+        'recipe_section_id' => $section->id,
+        'quantity' => 1,
+        'unit' => 'cup',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->patch(route('recipes.update', $recipe), [
+        'instructions' => '<p>Simple instructions.</p>',
+        'ingredients' => [
+            ['ingredient_id' => $ingredientB->id, 'quantity' => '2', 'unit' => 'tbsp'],
+        ],
+    ]);
+
+    $recipe->refresh()->load(['sections', 'ingredients']);
+    $response->assertRedirect(route('recipes.show', $recipe));
+
+    expect($recipe->sections)->toHaveCount(0);
+    expect($recipe->ingredients)->toHaveCount(1);
+    expect($recipe->ingredients->first()->id)->toBe($ingredientB->id);
+
+    $sectionPivotCount = DB::table('ingredient_recipe')
+        ->where('recipe_id', $recipe->id)
+        ->whereNotNull('recipe_section_id')
+        ->count();
+    expect($sectionPivotCount)->toBe(0);
+});
+
+it('stores a section with no ingredients', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->post(route('recipes.store'), [
+        'name' => 'Instructions Only',
+        'servings' => 2,
+        'flavor_profile' => 'Savory',
+        'sections' => [
+            [
+                'name' => 'Prep Notes',
+                'sort_order' => 0,
+                'instructions' => '<p>Just prep notes, no ingredients.</p>',
+            ],
+        ],
+    ]);
+
+    $recipe = Recipe::query()->where('name', 'Instructions Only')->first();
+    $response->assertRedirect(route('recipes.show', $recipe));
+
+    expect($recipe->sections)->toHaveCount(1);
+    expect($recipe->sections[0]->name)->toBe('Prep Notes');
+    expect($recipe->sections[0]->ingredients)->toHaveCount(0);
+});
+
+it('sanitizes malicious HTML in section instructions', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->post(route('recipes.store'), [
+        'name' => 'XSS Test',
+        'servings' => 1,
+        'flavor_profile' => 'Test',
+        'sections' => [
+            [
+                'name' => 'Dangerous Section',
+                'sort_order' => 0,
+                'instructions' => '<p>Safe text</p><script>alert("xss")</script><img onerror="alert(1)" src="x">',
+            ],
+        ],
+    ]);
+
+    $recipe = Recipe::query()->where('name', 'XSS Test')->first();
+    $response->assertRedirect(route('recipes.show', $recipe));
+
+    $instructions = $recipe->sections[0]->instructions;
+    expect($instructions)->not->toContain('<script>');
+    expect($instructions)->not->toContain('onerror');
+    expect($instructions)->toContain('Safe text');
+});
+
+it('rejects negative sort_order', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->postJson(route('recipes.store'), [
+        'name' => 'Bad Sort',
+        'servings' => 2,
+        'flavor_profile' => 'Test',
+        'sections' => [
+            ['name' => 'Section', 'sort_order' => -1, 'instructions' => '<p>Test</p>'],
+        ],
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['sections.0.sort_order']);
+});
+
+it('rejects non-integer sort_order', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->postJson(route('recipes.store'), [
+        'name' => 'Bad Sort',
+        'servings' => 2,
+        'flavor_profile' => 'Test',
+        'sections' => [
+            ['name' => 'Section', 'sort_order' => 'abc', 'instructions' => '<p>Test</p>'],
+        ],
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['sections.0.sort_order']);
+});
+
+it('rejects section name exceeding max length', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->postJson(route('recipes.store'), [
+        'name' => 'Max Length Test',
+        'servings' => 2,
+        'flavor_profile' => 'Test',
+        'sections' => [
+            ['name' => str_repeat('A', 256), 'sort_order' => 0],
+        ],
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['sections.0.name']);
+});
+
+it('returns 404 when another user tries to view a recipe with sections', function () {
+    $owner = User::factory()->create();
+    $stranger = User::factory()->create();
+
+    $recipe = Recipe::factory()->for($owner)->create();
+    RecipeSection::factory()->for($recipe)->create(['name' => 'Secret Sauce', 'sort_order' => 0]);
+
+    $this->actingAs($stranger)->get(route('recipes.show', $recipe))
+        ->assertNotFound();
+
+    $this->actingAs($stranger)->get(route('recipes.edit', $recipe))
+        ->assertNotFound();
+});
+
+it('returns 404 when another user tries to update a recipe with sections', function () {
+    $owner = User::factory()->create();
+    $stranger = User::factory()->create();
+    $ingredient = Ingredient::factory()->for($stranger)->create();
+
+    $recipe = Recipe::factory()->for($owner)->create();
+    RecipeSection::factory()->for($recipe)->create(['name' => 'Secret Sauce', 'sort_order' => 0]);
+
+    $this->actingAs($stranger)->patch(route('recipes.update', $recipe), [
+        'sections' => [
+            ['name' => 'Hijacked', 'sort_order' => 0, 'ingredients' => [
+                ['ingredient_id' => $ingredient->id, 'quantity' => '1', 'unit' => 'cup'],
+            ]],
+        ],
+    ])->assertNotFound();
+});

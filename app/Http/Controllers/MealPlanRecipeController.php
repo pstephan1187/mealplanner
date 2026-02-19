@@ -130,9 +130,11 @@ class MealPlanRecipeController extends Controller
     {
         $this->ensureOwnership($request, $mealPlanRecipe, throughRelationship: 'mealPlan');
 
+        $mealPlanId = $mealPlanRecipe->meal_plan_id;
+
         $mealPlanRecipe->delete();
 
-        return redirect()->route('meal-plan-recipes.index');
+        return redirect()->route('meal-plans.show', $mealPlanId);
     }
 
     protected function resolveMealPlan(Request $request, int $mealPlanId): MealPlan

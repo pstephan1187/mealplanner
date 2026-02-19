@@ -193,10 +193,7 @@ const hasSections = computed(() => (recipe.sections?.length ?? 0) > 0);
 
                 <!-- Sectioned ingredients -->
                 <div v-else class="flex flex-col gap-6">
-                    <Card
-                        v-for="section in recipe.sections"
-                        :key="section.id"
-                    >
+                    <Card v-for="section in recipe.sections" :key="section.id">
                         <CardHeader>
                             <CardTitle>{{ section.name }}</CardTitle>
                         </CardHeader>
@@ -242,7 +239,7 @@ const hasSections = computed(() => (recipe.sections?.length ?? 0) > 0);
                 </CardHeader>
                 <CardContent>
                     <div
-                        class="prose prose-sm max-w-none text-muted-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary"
+                        class="prose prose-sm max-w-none text-muted-foreground prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground"
                         v-html="recipe.instructions"
                     />
                 </CardContent>
@@ -251,15 +248,19 @@ const hasSections = computed(() => (recipe.sections?.length ?? 0) > 0);
             <!-- Sectioned instructions -->
             <template v-if="hasSections">
                 <Card
-                    v-for="section in recipe.sections?.filter(s => s.instructions)"
+                    v-for="section in recipe.sections?.filter(
+                        (s) => s.instructions,
+                    )"
                     :key="`instructions-${section.id}`"
                 >
                     <CardHeader>
-                        <CardTitle>{{ section.name }} &mdash; Instructions</CardTitle>
+                        <CardTitle
+                            >{{ section.name }} &mdash; Instructions</CardTitle
+                        >
                     </CardHeader>
                     <CardContent>
                         <div
-                            class="prose prose-sm max-w-none text-muted-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary"
+                            class="prose prose-sm max-w-none text-muted-foreground prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground"
                             v-html="section.instructions"
                         />
                     </CardContent>

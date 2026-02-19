@@ -2,6 +2,7 @@
 
 use App\Models\Ingredient;
 use App\Models\Recipe;
+use App\Models\RecipeSection;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
@@ -177,4 +178,27 @@ it('prevents deleting recipes for other users', function () {
     $response = $this->actingAs($user)->delete(route('recipes.destroy', $recipe));
 
     $response->assertNotFound();
+});
+
+it('includes sections count on recipe index', function () {
+    $user = User::factory()->create();
+
+    $flat = Recipe::factory()->for($user)->create(['name' => 'Flat Recipe']);
+    $sectioned = Recipe::factory()->for($user)->create(['name' => 'Sectioned Recipe']);
+    RecipeSection::factory()->for($sectioned)->create(['sort_order' => 0]);
+    RecipeSection::factory()->for($sectioned)->create(['sort_order' => 1]);
+
+    $response = $this->actingAs($user)->get(route('recipes.index'));
+
+    $response->assertSuccessful();
+    $response->assertInertia(function ($page) use ($flat, $sectioned) {
+        $page->component('recipes/Index')->has('recipes.data', 2);
+
+        $recipes = collect($page->toArray()['props']['recipes']['data']);
+        $sectionedData = $recipes->firstWhere('id', $sectioned->id);
+        $flatData = $recipes->firstWhere('id', $flat->id);
+
+        expect($sectionedData['sections_count'])->toBe(2);
+        expect($flatData['sections_count'])->toBe(0);
+    });
 });
