@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 
+import { bulkStore } from '@/actions/App/Http/Controllers/IngredientController';
 import { Button } from '@/components/ui/button';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import {
@@ -17,7 +18,6 @@ import { Label } from '@/components/ui/label';
 import { apiFetch } from '@/lib/utils';
 import type { GroceryStore } from '@/types/models';
 
-import { bulkStore } from '@/actions/App/Http/Controllers/IngredientController';
 
 export interface UnmatchedIngredient {
     rowIndex: number;

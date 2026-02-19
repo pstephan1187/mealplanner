@@ -19,7 +19,6 @@ it('center-crops a non-square recipe photo to a square when storing', function (
         'instructions' => 'Roast until done.',
         'servings' => 4,
         'flavor_profile' => 'Savory',
-        'meal_types' => ['Dinner'],
         'photo' => UploadedFile::fake()->image('chicken.jpg', 1600, 900),
     ]);
 

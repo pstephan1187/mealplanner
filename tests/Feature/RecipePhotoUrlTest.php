@@ -29,7 +29,6 @@ it('stores a recipe with a photo from a URL', function () {
         'instructions' => 'Test instructions.',
         'servings' => 2,
         'flavor_profile' => 'Savory',
-        'meal_types' => ['Dinner'],
         'photo_url' => 'https://example.com/photo.jpg',
     ]);
 
@@ -67,7 +66,6 @@ it('updates a recipe photo from a URL', function () {
         'instructions' => $recipe->instructions,
         'servings' => $recipe->servings,
         'flavor_profile' => $recipe->flavor_profile,
-        'meal_types' => $recipe->meal_types,
         'photo_url' => 'https://example.com/new-photo.jpg',
     ]);
 
@@ -87,7 +85,6 @@ it('rejects submitting both photo file and photo_url', function () {
         'instructions' => 'Test instructions.',
         'servings' => 2,
         'flavor_profile' => 'Savory',
-        'meal_types' => ['Dinner'],
         'photo' => UploadedFile::fake()->image('local.jpg', 200, 200),
         'photo_url' => 'https://example.com/photo.jpg',
     ]);

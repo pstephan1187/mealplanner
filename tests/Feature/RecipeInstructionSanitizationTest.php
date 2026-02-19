@@ -10,7 +10,6 @@ it('strips script tags from instructions on create', function () {
         'instructions' => '<p>Step one</p><script>alert("xss")</script><p>Step two</p>',
         'servings' => 4,
         'flavor_profile' => 'Savory',
-        'meal_types' => ['Dinner'],
     ]);
 
     $recipe = $user->recipes()->latest()->first();
@@ -27,7 +26,6 @@ it('allows supported HTML tags in instructions', function () {
         'instructions' => $html,
         'servings' => 2,
         'flavor_profile' => 'Sweet',
-        'meal_types' => ['Breakfast'],
     ]);
 
     $recipe = $user->recipes()->latest()->first();
@@ -48,7 +46,6 @@ it('strips script tags from instructions on update', function () {
         'instructions' => '<p>Original</p>',
         'servings' => 2,
         'flavor_profile' => 'Savory',
-        'meal_types' => ['Dinner'],
     ]);
 
     $this->actingAs($user)->patch(route('recipes.update', $recipe), [

@@ -2,6 +2,7 @@
 import { Form, Head, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
+import RecipeImportController from '@/actions/App/Http/Controllers/RecipeImportController';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +22,6 @@ import { create, index as recipesIndex, store } from '@/routes/recipes';
 import { type BreadcrumbItem } from '@/types';
 import type { GroceryStore, Ingredient, Recipe } from '@/types/models';
 
-import RecipeImportController from '@/actions/App/Http/Controllers/RecipeImportController';
 
 import RecipeForm from './Partials/RecipeForm.vue';
 

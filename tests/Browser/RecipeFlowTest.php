@@ -34,7 +34,6 @@ it('creates a recipe with a photo', function (string $device) {
         ->fill('name', 'Crispy Tofu Bowl')
         ->fill('servings', '2')
         ->fill('flavor_profile', 'Savory')
-        ->click('@meal-type-dinner')
         ->fill('instructions', 'Bake the tofu until crisp.')
         ->attach('photo', base_path('tests/Fixtures/recipe.jpg'))
         ->submit()

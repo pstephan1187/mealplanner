@@ -13,7 +13,6 @@ it('stores recipes with fraction quantities', function () {
         'instructions' => 'Mix ingredients.',
         'servings' => 2,
         'flavor_profile' => 'Savory',
-        'meal_types' => ['Dinner'],
         'ingredients' => [
             [
                 'ingredient_id' => $ingredient->id,
@@ -39,7 +38,6 @@ it('stores recipes with mixed number quantities', function () {
         'instructions' => 'Mix ingredients.',
         'servings' => 4,
         'flavor_profile' => 'Sweet',
-        'meal_types' => ['Breakfast'],
         'ingredients' => [
             [
                 'ingredient_id' => $ingredient->id,
@@ -64,7 +62,6 @@ it('still accepts decimal quantities', function () {
         'instructions' => 'Mix ingredients.',
         'servings' => 1,
         'flavor_profile' => 'Mild',
-        'meal_types' => ['Lunch'],
         'ingredients' => [
             [
                 'ingredient_id' => $ingredient->id,
@@ -89,7 +86,6 @@ it('rejects invalid quantity formats', function (string $quantity) {
         'instructions' => 'Mix ingredients.',
         'servings' => 1,
         'flavor_profile' => 'Mild',
-        'meal_types' => ['Lunch'],
         'ingredients' => [
             [
                 'ingredient_id' => $ingredient->id,

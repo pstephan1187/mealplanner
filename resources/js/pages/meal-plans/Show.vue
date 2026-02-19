@@ -41,7 +41,7 @@ import {
 
 interface RecipeOption extends Pick<
     Recipe,
-    'id' | 'name' | 'servings' | 'meal_types' | 'photo_url'
+    'id' | 'name' | 'servings' | 'photo_url'
 > {
     servings: number;
 }

@@ -25,7 +25,6 @@ it('stores recipes with photos and ingredients', function () {
         'instructions' => 'Bake and glaze until flaky.',
         'servings' => 2,
         'flavor_profile' => 'Sweet',
-        'meal_types' => ['Dinner'],
         'photo' => UploadedFile::fake()->image('salmon.jpg', 1200, 1200),
         'prep_time_minutes' => 10,
         'cook_time_minutes' => 25,

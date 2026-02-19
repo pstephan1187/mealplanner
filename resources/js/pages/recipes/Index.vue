@@ -2,7 +2,6 @@
 import { Head, Link } from '@inertiajs/vue3';
 
 import ResourceIndex from '@/components/ResourceIndex.vue';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -59,18 +58,6 @@ const breadcrumbs: BreadcrumbItem[] = [
                             <Button variant="ghost" size="sm" as-child>
                                 <Link :href="show(recipe)">View</Link>
                             </Button>
-                        </div>
-                        <div
-                            v-if="recipe.meal_types?.length"
-                            class="flex flex-wrap gap-2"
-                        >
-                            <Badge
-                                v-for="mealType in recipe.meal_types"
-                                :key="mealType"
-                                variant="secondary"
-                            >
-                                {{ mealType }}
-                            </Badge>
                         </div>
                     </div>
 

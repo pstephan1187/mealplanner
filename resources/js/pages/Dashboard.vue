@@ -188,18 +188,6 @@ const recentMealPlans = computed(() =>
                                     <p class="font-medium">
                                         {{ recipe.name }}
                                     </p>
-                                    <div
-                                        v-if="recipe.meal_types?.length"
-                                        class="mt-1 flex flex-wrap gap-1 text-xs text-muted-foreground"
-                                    >
-                                        <span
-                                            v-for="mealType in recipe.meal_types"
-                                            :key="mealType"
-                                            class="rounded-full bg-muted px-2 py-0.5"
-                                        >
-                                            {{ mealType }}
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
                             <Button variant="ghost" size="sm" as-child>
