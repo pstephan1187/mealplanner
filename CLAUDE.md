@@ -589,6 +589,13 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 | decoration-slice | box-decoration-slice |
 | decoration-clone | box-decoration-clone |
 
+=== laravel/ai rules ===
+
+## Laravel AI SDK
+
+- This application uses the Laravel AI SDK (`laravel/ai`) for all AI functionality.
+- Activate the `developing-with-ai-sdk` skill when building, editing, updating, debugging, or testing AI agents, text generation, chat, streaming, structured output, tools, image generation, audio, transcription, embeddings, reranking, vector stores, files, conversation memory, or any AI provider integration (OpenAI, Anthropic, Gemini, Cohere, Groq, xAI, ElevenLabs, Jina, OpenRouter).
+
 === laravel/fortify rules ===
 
 ## Laravel Fortify
@@ -616,4 +623,11 @@ Fortify is a headless authentication backend that provides authentication routes
 - `Features::updateProfileInformation()` to let users update their profile.
 - `Features::updatePasswords()` to let users change their passwords.
 - `Features::resetPasswords()` for password reset via email.
+
+=== prism-php/prism rules ===
+
+## Prism
+
+- Prism is a Laravel package for integrating Large Language Models (LLMs) into applications with a fluent, expressive and eloquent API.
+- IMPORTANT: Activate `developing-with-prism` skill when working with Prism features.
 </laravel-boost-guidelines>

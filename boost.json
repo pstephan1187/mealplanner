@@ -1,18 +1,17 @@
 {
     "agents": [
         "claude_code",
-        "codex",
-        "opencode",
-        "phpstorm"
+        "codex"
     ],
     "editors": [
         "claude_code",
         "codex",
-        "opencode",
         "phpstorm"
     ],
     "guidelines": [
-        "laravel/fortify"
+        "laravel/fortify",
+        "laravel/ai",
+        "prism-php/prism"
     ],
     "herd_mcp": true
 }
