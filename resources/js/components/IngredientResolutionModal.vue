@@ -76,7 +76,7 @@ watch(
     },
 );
 
-function storeOptionsFor(row: RowState) {
+function storeOptionsFor(_row: RowState) {
     return localStores.value.map((s) => ({ id: s.id, name: s.name }));
 }
 

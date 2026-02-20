@@ -33,6 +33,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Create Database
+        run: touch database/database.sqlite
+
       - name: Install Node Dependencies
         run: npm i
 
