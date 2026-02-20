@@ -198,9 +198,12 @@ const disableSections = () => {
         ingredientRows.value = allIngredients;
         instructionsContent.value =
             sectionRows.value
-                .filter((s) => s.instructions)
-                .map((s) => s.instructions)
-                .join('\n') || '';
+                .filter((s) => s.name || s.instructions)
+                .map((s) => {
+                    const header = s.name ? `<h2>${s.name}</h2>` : '';
+                    return header + (s.instructions || '');
+                })
+                .join('') || '';
     }
     sectionRows.value = [];
     useSections.value = false;
@@ -632,18 +635,23 @@ onBeforeUnmount(() => {
                                 <DialogHeader class="space-y-3">
                                     <DialogTitle>Remove sections?</DialogTitle>
                                     <DialogDescription>
-                                        Section names and instructions will be
-                                        lost. Ingredients will be moved to a
-                                        single flat list.
+                                        Ingredients will be moved to a single
+                                        flat list. Section instructions will be
+                                        merged into the main instructions with
+                                        section names as headers.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <DialogFooter class="gap-2">
                                     <DialogClose as-child>
-                                        <Button variant="secondary">
+                                        <Button
+                                            data-test="cancel-remove-sections"
+                                            variant="secondary"
+                                        >
                                             Cancel
                                         </Button>
                                     </DialogClose>
                                     <Button
+                                        data-test="confirm-remove-sections"
                                         variant="destructive"
                                         @click="
                                             disableSections();
