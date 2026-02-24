@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
 import Heading from '@/components/Heading.vue';
@@ -21,6 +21,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { MEAL_TYPES } from '@/lib/constants';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
 import {
+    destroy as destroyMealPlanRecipe,
     store as storeMealPlanRecipe,
     update as updateMealPlanRecipe,
 } from '@/routes/meal-plan-recipes';
@@ -253,6 +254,22 @@ const submitAssignment = () => {
     form.post(storeMealPlanRecipe().url, {
         preserveScroll: true,
         onSuccess,
+    });
+};
+
+const clearAssignment = () => {
+    if (!activeMealPlanRecipeId.value) {
+        return;
+    }
+
+    router.delete(destroyMealPlanRecipe(activeMealPlanRecipeId.value).url, {
+        preserveScroll: true,
+        onSuccess: () => {
+            assignmentDialogOpen.value = false;
+            activeSlot.value = null;
+            activeMealPlanRecipeId.value = null;
+            form.reset();
+        },
     });
 };
 
@@ -499,6 +516,15 @@ const createShoppingListFromPlan = () => {
                     <InputError :message="form.errors.date" />
 
                     <DialogFooter class="gap-2">
+                        <Button
+                            v-if="isEditing"
+                            variant="destructive"
+                            type="button"
+                            class="sm:mr-auto"
+                            @click="clearAssignment"
+                        >
+                            Remove meal
+                        </Button>
                         <DialogClose as-child>
                             <Button variant="secondary" type="button">
                                 Cancel
