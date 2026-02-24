@@ -130,7 +130,7 @@ watch(
     },
 );
 
-function storeOptionsFor(_row: RowState) {
+function storeOptionsFor() {
     return localStores.value.map((s) => ({ id: s.id, name: s.name }));
 }
 
@@ -318,7 +318,7 @@ async function handleSave() {
                                 <Label>Grocery store (optional)</Label>
                                 <Combobox
                                     v-model="row.storeId"
-                                    :options="storeOptionsFor(row)"
+                                    :options="storeOptionsFor()"
                                     placeholder="Select or create a store..."
                                     allow-create
                                     create-label="Create store"
