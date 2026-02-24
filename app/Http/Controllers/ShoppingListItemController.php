@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\EnsuresOwnership;
 use App\Http\Requests\ShoppingListItems\StoreShoppingListItemRequest;
 use App\Http\Requests\ShoppingListItems\UpdateShoppingListItemRequest;
+use App\Http\Resources\GroceryStoreResource;
 use App\Http\Resources\IngredientResource;
 use App\Http\Resources\ShoppingListItemResource;
 use App\Http\Resources\ShoppingListResource;
+use App\Models\GroceryStore;
 use App\Models\Ingredient;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
@@ -48,9 +50,16 @@ class ShoppingListItemController extends Controller
             ->orderBy('name')
             ->get();
 
+        $groceryStores = GroceryStore::query()
+            ->currentUser()
+            ->with('sections')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('shopping-list-items/Create', [
             'shoppingLists' => ShoppingListResource::collection($shoppingLists),
             'ingredients' => IngredientResource::collection($ingredients),
+            'groceryStores' => GroceryStoreResource::collection($groceryStores),
         ]);
     }
 
@@ -87,10 +96,17 @@ class ShoppingListItemController extends Controller
             ->orderBy('name')
             ->get();
 
+        $groceryStores = GroceryStore::query()
+            ->currentUser()
+            ->with('sections')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('shopping-list-items/Edit', [
             'item' => ShoppingListItemResource::make($shoppingListItem->load('ingredient')),
             'shoppingLists' => ShoppingListResource::collection($shoppingLists),
             'ingredients' => IngredientResource::collection($ingredients),
+            'groceryStores' => GroceryStoreResource::collection($groceryStores),
         ]);
     }
 

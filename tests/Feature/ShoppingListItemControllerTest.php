@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\GroceryStore;
+use App\Models\GroceryStoreSection;
 use App\Models\Ingredient;
 use App\Models\MealPlan;
 use App\Models\ShoppingList;
@@ -142,4 +144,59 @@ it('prevents updating items for other users', function () {
     ]);
 
     $response->assertNotFound();
+});
+
+it('can create a shopping list item with grocery store override', function () {
+    $user = User::factory()->create();
+    $mealPlan = MealPlan::factory()->for($user)->create();
+    $shoppingList = ShoppingList::factory()->for($user)->for($mealPlan)->create();
+    $ingredient = Ingredient::factory()->for($user)->create();
+    $store = GroceryStore::factory()->for($user)->create();
+    $section = GroceryStoreSection::factory()->for($store)->create();
+
+    $this->actingAs($user)
+        ->postJson(route('shopping-list-items.store'), [
+            'shopping_list_id' => $shoppingList->id,
+            'ingredient_id' => $ingredient->id,
+            'quantity' => 2,
+            'unit' => 'cups',
+            'grocery_store_id' => $store->id,
+            'grocery_store_section_id' => $section->id,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('shopping_list_items', [
+        'ingredient_id' => $ingredient->id,
+        'grocery_store_id' => $store->id,
+        'grocery_store_section_id' => $section->id,
+    ]);
+});
+
+it('passes grocery stores to the create page', function () {
+    $user = User::factory()->create();
+    $store = GroceryStore::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->get(route('shopping-list-items.create'))
+        ->assertInertia(fn ($page) => $page
+            ->component('shopping-list-items/Create')
+            ->has('groceryStores'));
+});
+
+it('passes grocery stores to the edit page', function () {
+    $user = User::factory()->create();
+    $mealPlan = MealPlan::factory()->for($user)->create();
+    $shoppingList = ShoppingList::factory()->for($user)->for($mealPlan)->create();
+    $ingredient = Ingredient::factory()->for($user)->create();
+    $item = ShoppingListItem::factory()
+        ->for($shoppingList)
+        ->for($ingredient)
+        ->create();
+    $store = GroceryStore::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->get(route('shopping-list-items.edit', $item))
+        ->assertInertia(fn ($page) => $page
+            ->component('shopping-list-items/Edit')
+            ->has('groceryStores'));
 });

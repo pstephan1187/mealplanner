@@ -30,6 +30,18 @@ class StoreShoppingListItemRequest extends FormRequest
             'unit' => ['required', 'string', 'max:50'],
             'is_purchased' => ['sometimes', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:1'],
+            'grocery_store_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('grocery_stores', 'id')->where('user_id', $this->user()->id),
+            ],
+            'grocery_store_section_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'exists:grocery_store_sections,id',
+            ],
         ];
     }
 }
