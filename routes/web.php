@@ -8,6 +8,7 @@ use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\MealPlanRecipeController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\RecipeImportController;
+use App\Http\Controllers\SharedShoppingListController;
 use App\Http\Controllers\ShoppingListController;
 use App\Http\Controllers\ShoppingListItemController;
 use App\Http\Controllers\UploadController;
@@ -20,6 +21,11 @@ Route::get('/', function () {
         'canRegister' => Features::enabled(Features::registration()),
     ]);
 })->name('home');
+
+Route::get('shared/shopping-list/{shareToken}', [SharedShoppingListController::class, 'show'])
+    ->name('shared.shopping-list.show');
+Route::patch('shared/shopping-list/{shareToken}/items/{shoppingListItem}', [SharedShoppingListController::class, 'toggleItem'])
+    ->name('shared.shopping-list.toggle-item');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
@@ -49,6 +55,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('meal-plan-recipes', MealPlanRecipeController::class);
     Route::get('shopping-lists/{shopping_list}/print', [ShoppingListController::class, 'print'])
         ->name('shopping-lists.print');
+    Route::post('shopping-lists/{shopping_list}/share', [ShoppingListController::class, 'enableSharing'])
+        ->name('shopping-lists.share.enable');
+    Route::delete('shopping-lists/{shopping_list}/share', [ShoppingListController::class, 'disableSharing'])
+        ->name('shopping-lists.share.disable');
+    Route::post('shopping-lists/{shopping_list}/share/email', [ShoppingListController::class, 'shareViaEmail'])
+        ->name('shopping-lists.share.email');
     Route::resource('shopping-lists', ShoppingListController::class);
     Route::resource('shopping-list-items', ShoppingListItemController::class);
 });

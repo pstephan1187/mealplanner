@@ -3,18 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\EnsuresOwnership;
+use App\Http\Requests\ShoppingLists\ShareShoppingListRequest;
 use App\Http\Requests\ShoppingLists\StoreShoppingListRequest;
 use App\Http\Requests\ShoppingLists\UpdateShoppingListItemOrderRequest;
 use App\Http\Requests\ShoppingLists\UpdateShoppingListRequest;
 use App\Http\Resources\GroceryStoreResource;
 use App\Http\Resources\MealPlanResource;
 use App\Http\Resources\ShoppingListResource;
+use App\Mail\ShareShoppingListMail;
 use App\Models\GroceryStore;
 use App\Models\MealPlan;
 use App\Models\ShoppingList;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -166,6 +169,37 @@ class ShoppingListController extends Controller
                 ->whereKey($item['id'])
                 ->update(['sort_order' => $item['sort_order']]);
         }
+
+        return back();
+    }
+
+    public function enableSharing(Request $request, ShoppingList $shoppingList): RedirectResponse
+    {
+        $this->ensureOwnership($request, $shoppingList);
+
+        $shoppingList->generateShareToken();
+
+        return back();
+    }
+
+    public function disableSharing(Request $request, ShoppingList $shoppingList): RedirectResponse
+    {
+        $this->ensureOwnership($request, $shoppingList);
+
+        $shoppingList->revokeShareToken();
+
+        return back();
+    }
+
+    public function shareViaEmail(ShareShoppingListRequest $request, ShoppingList $shoppingList): RedirectResponse
+    {
+        $this->ensureOwnership($request, $shoppingList);
+
+        $shoppingList->generateShareToken();
+        $shoppingList->loadMissing('mealPlan');
+
+        Mail::to($request->validated('email'))
+            ->send(new ShareShoppingListMail($shoppingList, $request->user()));
 
         return back();
     }

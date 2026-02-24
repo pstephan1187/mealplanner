@@ -127,6 +127,7 @@ export interface ShoppingList {
     id: number;
     meal_plan_id: number;
     display_mode?: 'manual' | 'alphabetical' | 'store';
+    share_token?: string | null;
     meal_plan?: MealPlan | null;
     items?: ShoppingListItem[];
 }

@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Form, Head, Link, router } from '@inertiajs/vue3';
 import {
     ArrowDown,
     ArrowUp,
+    Check,
+    Copy,
     GripVertical,
+    LinkIcon,
     Pencil,
     Printer,
+    Share2,
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
+import { show as sharedShow } from '@/actions/App/Http/Controllers/SharedShoppingListController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import SectionCreationModal from '@/components/SectionCreationModal.vue';
@@ -48,6 +53,11 @@ import {
     show,
     update,
 } from '@/routes/shopping-lists';
+import {
+    disable as disableShareRoute,
+    email as emailShareRoute,
+    enable as enableShareRoute,
+} from '@/routes/shopping-lists/share';
 import { type BreadcrumbItem } from '@/types';
 import type {
     GroceryStore,
@@ -173,6 +183,46 @@ const togglePurchased = (item: ShoppingListItem) => {
         },
     );
 };
+
+// Share dialog
+const showShareDialog = ref(false);
+const linkCopied = ref(false);
+const emailSent = ref(false);
+
+const isShared = computed(() => !!shoppingList.value.share_token);
+
+const shareUrl = computed(() => {
+    if (!shoppingList.value.share_token) return '';
+    return `${window.location.origin}${sharedShow.url(shoppingList.value.share_token)}`;
+});
+
+const handleEnableSharing = () => {
+    router.post(
+        enableShareRoute(shoppingList.value.id),
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
+};
+
+const handleDisableSharing = () => {
+    router.delete(disableShareRoute(shoppingList.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            linkCopied.value = false;
+            emailSent.value = false;
+        },
+    });
+};
+
+const copyLink = async () => {
+    await navigator.clipboard.writeText(shareUrl.value);
+    linkCopied.value = true;
+    setTimeout(() => {
+        linkCopied.value = false;
+    }, 2000);
+};
 </script>
 
 <template>
@@ -188,6 +238,10 @@ const togglePurchased = (item: ShoppingListItem) => {
                     description="Customize order, mark purchases, and keep it tidy."
                 />
                 <div class="flex flex-wrap gap-2">
+                    <Button variant="secondary" @click="showShareDialog = true">
+                        <Share2 class="size-4" />
+                        Share
+                    </Button>
                     <Button variant="secondary" as-child>
                         <a
                             :href="
@@ -642,6 +696,120 @@ const togglePurchased = (item: ShoppingListItem) => {
                         Save ingredient
                     </Button>
                 </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Share Dialog -->
+        <Dialog v-model:open="showShareDialog">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Share shopping list</DialogTitle>
+                    <DialogDescription>
+                        Share this list so someone else can view it and check
+                        off items.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4 py-4">
+                    <!-- Not shared yet -->
+                    <template v-if="!isShared">
+                        <p class="text-sm text-muted-foreground">
+                            Sharing is currently disabled. Enable it to get a
+                            link anyone can use to view and check off items.
+                        </p>
+                        <Button class="w-full" @click="handleEnableSharing">
+                            <LinkIcon class="size-4" />
+                            Enable sharing
+                        </Button>
+                    </template>
+
+                    <!-- Shared -->
+                    <template v-else>
+                        <!-- Copy link -->
+                        <div class="space-y-2">
+                            <Label>Share link</Label>
+                            <div class="flex gap-2">
+                                <Input
+                                    :model-value="shareUrl"
+                                    readonly
+                                    class="font-mono text-xs"
+                                    @focus="
+                                        (
+                                            $event.target as HTMLInputElement
+                                        ).select()
+                                    "
+                                />
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    @click="copyLink"
+                                >
+                                    <Check
+                                        v-if="linkCopied"
+                                        class="size-4 text-green-600"
+                                    />
+                                    <Copy v-else class="size-4" />
+                                </Button>
+                            </div>
+                        </div>
+
+                        <!-- Email form -->
+                        <div class="space-y-2">
+                            <Label>Send via email</Label>
+                            <Form
+                                :action="emailShareRoute.url(shoppingList.id)"
+                                method="post"
+                                :preserve-scroll="true"
+                                #default="{ errors, processing, wasSuccessful }"
+                                @success="emailSent = true"
+                            >
+                                <div class="flex gap-2">
+                                    <div class="min-w-0 flex-1">
+                                        <Input
+                                            type="email"
+                                            name="email"
+                                            placeholder="name@example.com"
+                                        />
+                                        <p
+                                            v-if="errors.email"
+                                            class="mt-1 text-sm text-destructive"
+                                        >
+                                            {{ errors.email }}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        :disabled="processing"
+                                    >
+                                        Send
+                                    </Button>
+                                </div>
+                                <p
+                                    v-if="wasSuccessful || emailSent"
+                                    class="mt-2 text-sm text-green-600"
+                                >
+                                    Email sent!
+                                </p>
+                            </Form>
+                        </div>
+
+                        <!-- Disable sharing -->
+                        <div class="border-t border-border pt-4">
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                @click="handleDisableSharing"
+                            >
+                                Disable sharing
+                            </Button>
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                This will revoke the current link. Anyone with
+                                the old link will no longer be able to access
+                                the list.
+                            </p>
+                        </div>
+                    </template>
+                </div>
             </DialogContent>
         </Dialog>
 

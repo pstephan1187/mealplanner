@@ -87,7 +87,7 @@ onMounted(() => {
                         <li
                             v-for="item in section.items"
                             :key="item.id"
-                            class="flex items-baseline gap-2 break-inside-avoid py-0.5"
+                            class="flex break-inside-avoid items-baseline gap-2 py-0.5"
                             :class="{
                                 'text-gray-400 line-through': item.is_purchased,
                             }"
@@ -113,7 +113,7 @@ onMounted(() => {
                 <li
                     v-for="item in sortedItems"
                     :key="item.id"
-                    class="flex items-baseline gap-2 break-inside-avoid py-0.5"
+                    class="flex break-inside-avoid items-baseline gap-2 py-0.5"
                     :class="{
                         'text-gray-400 line-through': item.is_purchased,
                     }"

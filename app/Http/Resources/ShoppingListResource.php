@@ -19,6 +19,7 @@ class ShoppingListResource extends JsonResource
             'user_id' => $this->user_id,
             'meal_plan_id' => $this->meal_plan_id,
             'display_mode' => $this->display_mode,
+            'share_token' => $this->share_token,
             'meal_plan' => MealPlanResource::make($this->whenLoaded('mealPlan')),
             'items' => ShoppingListItemResource::collection($this->whenLoaded('items')),
         ];
