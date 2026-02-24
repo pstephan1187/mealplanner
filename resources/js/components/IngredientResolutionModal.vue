@@ -2,6 +2,8 @@
 import { computed, ref, watch } from 'vue';
 
 import { bulkStore } from '@/actions/App/Http/Controllers/IngredientController';
+import SectionCreationModal from '@/components/SectionCreationModal.vue';
+import StoreCreationModal from '@/components/StoreCreationModal.vue';
 import { Button } from '@/components/ui/button';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import {
@@ -15,8 +17,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useStoreAndSectionModals } from '@/composables/useStoreAndSectionModals';
 import { apiFetch } from '@/lib/utils';
-import type { GroceryStore } from '@/types/models';
+import type { GroceryStore, GroceryStoreSection } from '@/types/models';
 
 export interface UnmatchedIngredient {
     rowIndex: number;
@@ -57,6 +60,57 @@ const saving = ref(false);
 const saveError = ref('');
 
 const localStores = ref<GroceryStore[]>([...props.groceryStores]);
+
+const activeRowIndex = ref<number | null>(null);
+
+const {
+    showStoreModal,
+    showSectionModal,
+    prefillStoreName,
+    prefillSectionName,
+    openStoreModal: baseOpenStoreModal,
+    openSectionModal: baseOpenSectionModal,
+    handleStoreCreated,
+    handleSectionCreated,
+} = useStoreAndSectionModals({
+    onStoreCreated: (store: GroceryStore) => {
+        localStores.value = [...localStores.value, store].sort((a, b) =>
+            a.name.localeCompare(b.name),
+        );
+        if (activeRowIndex.value !== null) {
+            rows.value[activeRowIndex.value].storeId = store.id;
+        }
+    },
+    onSectionCreated: (section: GroceryStoreSection) => {
+        localStores.value = localStores.value.map((store) => {
+            if (
+                activeRowIndex.value !== null &&
+                store.id === Number(rows.value[activeRowIndex.value].storeId)
+            ) {
+                return {
+                    ...store,
+                    sections: [...(store.sections || []), section].sort(
+                        (a, b) => a.name.localeCompare(b.name),
+                    ),
+                };
+            }
+            return store;
+        });
+        if (activeRowIndex.value !== null) {
+            rows.value[activeRowIndex.value].sectionId = section.id;
+        }
+    },
+});
+
+function openStoreModalForRow(index: number, prefillName?: string) {
+    activeRowIndex.value = index;
+    baseOpenStoreModal(prefillName);
+}
+
+function openSectionModalForRow(index: number, prefillName?: string) {
+    activeRowIndex.value = index;
+    baseOpenSectionModal(prefillName);
+}
 
 const rows = ref<RowState[]>([]);
 
@@ -265,7 +319,13 @@ async function handleSave() {
                                 <Combobox
                                     v-model="row.storeId"
                                     :options="storeOptionsFor(row)"
-                                    placeholder="Select store..."
+                                    placeholder="Select or create a store..."
+                                    allow-create
+                                    create-label="Create store"
+                                    @create="
+                                        (name: string) =>
+                                            openStoreModalForRow(index, name)
+                                    "
                                 />
                             </div>
                             <div class="grid gap-2">
@@ -273,8 +333,14 @@ async function handleSave() {
                                 <Combobox
                                     v-model="row.sectionId"
                                     :options="sectionOptionsFor(row)"
-                                    placeholder="Select section..."
+                                    placeholder="Select or create a section..."
                                     :disabled="!row.storeId"
+                                    allow-create
+                                    create-label="Create section"
+                                    @create="
+                                        (name: string) =>
+                                            openSectionModalForRow(index, name)
+                                    "
                                 />
                             </div>
                         </div>
@@ -295,5 +361,20 @@ async function handleSave() {
                 </Button>
             </DialogFooter>
         </DialogContent>
+
+        <StoreCreationModal
+            v-model:open="showStoreModal"
+            :prefill-name="prefillStoreName"
+            @store-created="handleStoreCreated"
+        />
+
+        <SectionCreationModal
+            v-model:open="showSectionModal"
+            :store-id="
+                activeRowIndex !== null ? rows[activeRowIndex].storeId : ''
+            "
+            :prefill-name="prefillSectionName"
+            @section-created="handleSectionCreated"
+        />
     </Dialog>
 </template>

@@ -200,3 +200,25 @@ it('passes grocery stores to the edit page', function () {
             ->component('shopping-list-items/Edit')
             ->has('groceryStores'));
 });
+
+it('rejects a grocery store section that does not belong to the selected store', function () {
+    $user = User::factory()->create();
+    $mealPlan = MealPlan::factory()->for($user)->create();
+    $shoppingList = ShoppingList::factory()->for($user)->for($mealPlan)->create();
+    $ingredient = Ingredient::factory()->for($user)->create();
+    $store = GroceryStore::factory()->for($user)->create();
+    $otherStore = GroceryStore::factory()->for($user)->create();
+    $section = GroceryStoreSection::factory()->for($otherStore)->create();
+
+    $this->actingAs($user)
+        ->postJson(route('shopping-list-items.store'), [
+            'shopping_list_id' => $shoppingList->id,
+            'ingredient_id' => $ingredient->id,
+            'quantity' => 2,
+            'unit' => 'cups',
+            'grocery_store_id' => $store->id,
+            'grocery_store_section_id' => $section->id,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('grocery_store_section_id');
+});
