@@ -1,5 +1,7 @@
 import { computed, onMounted, ref } from 'vue';
 
+import { updateFavicon } from '@/composables/useDynamicFavicon';
+
 export type ResolvedAppearance = 'light' | 'dark';
 type Appearance = ResolvedAppearance | 'system';
 
@@ -61,6 +63,7 @@ const handleSystemThemeChange = () => {
     const currentAppearance = getStoredAppearance();
 
     updateTheme(currentAppearance || 'system');
+    updateFavicon();
 };
 
 export function initializeTheme() {
@@ -74,6 +77,9 @@ export function initializeTheme() {
 
     // Set up system theme change listener...
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+
+    // Update favicon after appearance is applied...
+    updateFavicon();
 }
 
 const appearance = ref<Appearance>('system');
@@ -107,6 +113,7 @@ export function useAppearance() {
         setCookie('appearance', value);
 
         updateTheme(value);
+        updateFavicon();
     }
 
     return {

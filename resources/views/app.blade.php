@@ -24,6 +24,25 @@
                 if (theme === 'blush-pink') {
                     document.documentElement.classList.add('theme-blush-pink');
                 }
+
+                // Generate themed favicon before CSS loads
+                var isDark = appearance === 'dark' || (appearance === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                var colors = {
+                    'default-light': ['hsl(0 0% 10%)', 'hsl(0 0% 98%)'],
+                    'default-dark': ['hsl(360 100% 100%)', 'hsl(0 0% 100%)'],
+                    'blush-pink-light': ['hsl(350 80% 42%)', 'hsl(0 0% 100%)'],
+                    'blush-pink-dark': ['hsl(350 70% 60%)', 'hsl(0 0% 100%)'],
+                };
+                var key = theme + '-' + (isDark ? 'dark' : 'light');
+                var c = colors[key] || colors['default-light'];
+                var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
+                    '<rect width="32" height="32" rx="8" fill="' + c[0] + '"/>' +
+                    '<g transform="translate(4 4)" fill="none" stroke="' + c[1] + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                    '<path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/>' +
+                    '<path d="M6 17h12"/>' +
+                    '</g></svg>';
+                var link = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
+                if (link) link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
             })();
         </script>
 

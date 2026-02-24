@@ -2,6 +2,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
 import { update } from '@/actions/App/Http/Controllers/Settings/AppearanceController';
+import { updateFavicon } from '@/composables/useDynamicFavicon';
 
 export type Theme = 'default' | 'blush-pink';
 
@@ -26,11 +27,13 @@ export function useTheme() {
         const serverTheme = (page.props.currentTheme as Theme) ?? 'default';
         theme.value = serverTheme;
         updateThemeClass(serverTheme);
+        updateFavicon();
     });
 
     function updateTheme(newTheme: Theme) {
         theme.value = newTheme;
         updateThemeClass(newTheme);
+        updateFavicon();
 
         router.patch(
             update().url,
