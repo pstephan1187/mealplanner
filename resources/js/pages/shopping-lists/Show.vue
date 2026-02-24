@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowDown, ArrowUp, GripVertical, Pencil } from 'lucide-vue-next';
+import {
+    ArrowDown,
+    ArrowUp,
+    GripVertical,
+    Pencil,
+    Printer,
+} from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 import Heading from '@/components/Heading.vue';
@@ -37,6 +43,7 @@ import {
 } from '@/routes/shopping-list-items';
 import {
     edit,
+    print as printShoppingList,
     index as shoppingListsIndex,
     show,
     update,
@@ -181,6 +188,19 @@ const togglePurchased = (item: ShoppingListItem) => {
                     description="Customize order, mark purchases, and keep it tidy."
                 />
                 <div class="flex flex-wrap gap-2">
+                    <Button variant="secondary" as-child>
+                        <a
+                            :href="
+                                printShoppingList.url(shoppingList.id, {
+                                    query: { mode: displayMode },
+                                })
+                            "
+                            target="_blank"
+                        >
+                            <Printer class="size-4" />
+                            Print
+                        </a>
+                    </Button>
                     <Button variant="secondary" as-child>
                         <Link :href="edit(shoppingList.id)">Edit list</Link>
                     </Button>

@@ -84,6 +84,24 @@ class ShoppingListController extends Controller
         ]);
     }
 
+    public function print(Request $request, ShoppingList $shoppingList): InertiaResponse
+    {
+        $this->ensureOwnership($request, $shoppingList);
+
+        $displayMode = $request->query('mode', $shoppingList->display_mode ?? 'manual');
+
+        return Inertia::render('shopping-lists/Print', [
+            'shoppingList' => ShoppingListResource::make($shoppingList->load([
+                'items.ingredient.groceryStore',
+                'items.ingredient.groceryStoreSection',
+                'items.groceryStore',
+                'items.groceryStoreSection',
+                'mealPlan',
+            ])),
+            'displayMode' => $displayMode,
+        ]);
+    }
+
     public function edit(Request $request, ShoppingList $shoppingList): InertiaResponse
     {
         $this->ensureOwnership($request, $shoppingList);

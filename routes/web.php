@@ -47,6 +47,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('grocery-stores.sections', GroceryStoreSectionController::class)->only(['store', 'update', 'destroy']);
     Route::resource('meal-plans', MealPlanController::class);
     Route::resource('meal-plan-recipes', MealPlanRecipeController::class);
+    Route::get('shopping-lists/{shopping_list}/print', [ShoppingListController::class, 'print'])
+        ->name('shopping-lists.print');
     Route::resource('shopping-lists', ShoppingListController::class);
     Route::resource('shopping-list-items', ShoppingListItemController::class);
 });
