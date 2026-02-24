@@ -27,7 +27,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if (app()->environment('local') && auth()->guest()) {
-            auth()->login(User::first());
+            try {
+                if ($user = User::first()) {
+                    auth()->login($user);
+                }
+            } catch (\Throwable) {
+                // Database may not exist yet (e.g. during CI or fresh install).
+            }
         }
 
         Gate::define('can-import-recipes', fn (User $user) => true);
