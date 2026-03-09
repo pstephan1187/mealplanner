@@ -180,6 +180,105 @@ it('prevents deleting recipes for other users', function () {
     $response->assertNotFound();
 });
 
+it('duplicates a flat recipe', function () {
+    $user = User::factory()->create();
+    $ingredient = Ingredient::factory()->for($user)->create();
+
+    $recipe = Recipe::factory()->for($user)->create([
+        'name' => 'Original Recipe',
+        'instructions' => 'Do the thing',
+        'servings' => 4,
+        'flavor_profile' => 'Savory',
+    ]);
+
+    $recipe->ingredients()->attach($ingredient->id, [
+        'quantity' => 1.5,
+        'unit' => 'cup',
+        'note' => 'chopped',
+    ]);
+
+    $response = $this->actingAs($user)->post(route('recipes.duplicate', $recipe));
+
+    $newRecipe = Recipe::query()
+        ->where('name', 'Original Recipe (Copy)')
+        ->first();
+
+    expect($newRecipe)->not->toBeNull();
+    $response->assertRedirect(route('recipes.edit', $newRecipe));
+
+    expect($newRecipe->instructions)->toBe('Do the thing');
+    expect($newRecipe->servings)->toBe(4);
+    expect($newRecipe->photo_path)->toBeNull();
+
+    $newRecipe->load('ingredients');
+    expect($newRecipe->ingredients)->toHaveCount(1);
+    expect($newRecipe->ingredients->first()->pivot->quantity)->toBe(1.5);
+    expect($newRecipe->ingredients->first()->pivot->unit)->toBe('cup');
+    expect($newRecipe->ingredients->first()->pivot->note)->toBe('chopped');
+});
+
+it('duplicates a sectioned recipe', function () {
+    $user = User::factory()->create();
+    $ingredient = Ingredient::factory()->for($user)->create();
+
+    $recipe = Recipe::factory()->for($user)->create(['name' => 'Sectioned Recipe']);
+    $section = RecipeSection::factory()->for($recipe)->create([
+        'name' => 'Sauce',
+        'sort_order' => 0,
+        'instructions' => 'Mix well',
+    ]);
+
+    \Illuminate\Support\Facades\DB::table('ingredient_recipe')->insert([
+        'recipe_id' => $recipe->id,
+        'ingredient_id' => $ingredient->id,
+        'recipe_section_id' => $section->id,
+        'quantity' => 2,
+        'unit' => 'tbsp',
+        'note' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->post(route('recipes.duplicate', $recipe));
+
+    $newRecipe = Recipe::query()
+        ->where('name', 'Sectioned Recipe (Copy)')
+        ->first();
+
+    expect($newRecipe)->not->toBeNull();
+
+    $newRecipe->load(['sections.ingredients']);
+    expect($newRecipe->sections)->toHaveCount(1);
+    expect($newRecipe->sections->first()->name)->toBe('Sauce');
+    expect($newRecipe->sections->first()->instructions)->toBe('Mix well');
+    expect($newRecipe->sections->first()->ingredients)->toHaveCount(1);
+});
+
+it('prevents duplicating recipes for other users', function () {
+    $user = User::factory()->create();
+    $recipe = Recipe::factory()->create();
+
+    $response = $this->actingAs($user)->post(route('recipes.duplicate', $recipe));
+
+    $response->assertNotFound();
+});
+
+it('filters recipes by search query', function () {
+    $user = User::factory()->create();
+    Recipe::factory()->for($user)->create(['name' => 'Chicken Parmesan']);
+    Recipe::factory()->for($user)->create(['name' => 'Beef Stew']);
+    Recipe::factory()->for($user)->create(['name' => 'Chicken Alfredo']);
+
+    $response = $this->actingAs($user)->get(route('recipes.index', ['search' => 'chicken']));
+
+    $response->assertSuccessful();
+    $response->assertInertia(function ($page) {
+        $page->component('recipes/Index')
+            ->has('recipes.data', 2)
+            ->where('filters.search', 'chicken');
+    });
+});
+
 it('includes sections count on recipe index', function () {
     $user = User::factory()->create();
 

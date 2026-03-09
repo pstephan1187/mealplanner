@@ -177,6 +177,49 @@ class RecipeController extends Controller
         return redirect()->route('recipes.show', $recipe);
     }
 
+    public function duplicate(Request $request, Recipe $recipe): RedirectResponse
+    {
+        $this->ensureOwnership($request, $recipe);
+
+        $recipe->load(['ingredients', 'sections.ingredients']);
+
+        $newRecipe = $request->user()->recipes()->create([
+            'name' => $recipe->name.' (Copy)',
+            'instructions' => $recipe->instructions,
+            'servings' => $recipe->servings,
+            'flavor_profile' => $recipe->flavor_profile,
+            'prep_time_minutes' => $recipe->prep_time_minutes,
+            'cook_time_minutes' => $recipe->cook_time_minutes,
+        ]);
+
+        if ($recipe->sections->isNotEmpty()) {
+            $sectionsData = $recipe->sections->map(fn ($section) => [
+                'name' => $section->name,
+                'sort_order' => $section->sort_order,
+                'instructions' => $section->instructions,
+                'ingredients' => $section->ingredients->map(fn ($ingredient) => [
+                    'ingredient_id' => $ingredient->id,
+                    'quantity' => $ingredient->pivot->quantity,
+                    'unit' => $ingredient->pivot->unit,
+                    'note' => $ingredient->pivot->note,
+                ])->all(),
+            ])->all();
+
+            $this->syncSections($newRecipe, $sectionsData);
+        } elseif ($recipe->ingredients->isNotEmpty()) {
+            $ingredientsData = $recipe->ingredients->map(fn ($ingredient) => [
+                'ingredient_id' => $ingredient->id,
+                'quantity' => $ingredient->pivot->quantity,
+                'unit' => $ingredient->pivot->unit,
+                'note' => $ingredient->pivot->note,
+            ])->all();
+
+            $this->syncFlatIngredients($newRecipe, $ingredientsData);
+        }
+
+        return redirect()->route('recipes.edit', $newRecipe);
+    }
+
     public function destroy(Request $request, Recipe $recipe): RedirectResponse
     {
         $this->ensureOwnership($request, $recipe);

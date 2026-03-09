@@ -47,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('uploads/images', UploadController::class)->name('uploads.images');
 
     Route::post('recipes/import', RecipeImportController::class)->name('recipes.import');
+    Route::post('recipes/{recipe}/duplicate', [RecipeController::class, 'duplicate'])->name('recipes.duplicate');
     Route::resource('recipes', RecipeController::class);
     Route::resource('ingredients', IngredientController::class);
     Route::resource('grocery-stores', GroceryStoreController::class);

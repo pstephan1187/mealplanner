@@ -17,7 +17,13 @@ import {
 } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { resolveResource, type ResourceProp } from '@/lib/utils';
-import { destroy, edit, index as recipesIndex, show } from '@/routes/recipes';
+import {
+    destroy,
+    duplicate,
+    edit,
+    index as recipesIndex,
+    show,
+} from '@/routes/recipes';
 import { type BreadcrumbItem } from '@/types';
 import type { Recipe } from '@/types/models';
 
@@ -61,6 +67,18 @@ const hasSections = computed(() => (recipe.sections?.length ?? 0) > 0);
                     <Button variant="secondary" as-child>
                         <Link :href="edit(recipe)">Edit recipe</Link>
                     </Button>
+                    <Form
+                        v-bind="duplicate.form(recipe)"
+                        v-slot="{ processing }"
+                    >
+                        <Button
+                            type="submit"
+                            variant="secondary"
+                            :disabled="processing"
+                        >
+                            Duplicate
+                        </Button>
+                    </Form>
                     <Dialog>
                         <DialogTrigger as-child>
                             <Button variant="destructive">Delete</Button>
