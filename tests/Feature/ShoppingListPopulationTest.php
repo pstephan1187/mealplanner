@@ -207,10 +207,10 @@ it('deduplicates same ingredient across three recipes', function () {
         'note' => null,
     ]);
 
-    // All at 2 servings
-    MealPlanRecipe::factory()->for($mealPlan)->for($recipeA)->create(['servings' => 2]); // scale 1x → 3
-    MealPlanRecipe::factory()->for($mealPlan)->for($recipeB)->create(['servings' => 2]); // scale 0.5x → 4
-    MealPlanRecipe::factory()->for($mealPlan)->for($recipeC)->create(['servings' => 2]); // scale 2x → 4
+    // All at 2 servings, distinct meal types to avoid unique constraint
+    MealPlanRecipe::factory()->for($mealPlan)->for($recipeA)->create(['servings' => 2, 'meal_type' => 'Breakfast', 'date' => $mealPlan->start_date]); // scale 1x → 3
+    MealPlanRecipe::factory()->for($mealPlan)->for($recipeB)->create(['servings' => 2, 'meal_type' => 'Lunch', 'date' => $mealPlan->start_date]); // scale 0.5x → 4
+    MealPlanRecipe::factory()->for($mealPlan)->for($recipeC)->create(['servings' => 2, 'meal_type' => 'Dinner', 'date' => $mealPlan->start_date]); // scale 2x → 4
 
     // Expected: 3 + 4 + 4 = 11 cloves
 
