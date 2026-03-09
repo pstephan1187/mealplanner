@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { ClipboardList } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 import { toggleItem } from '@/actions/App/Http/Controllers/SharedShoppingListController';
@@ -168,9 +169,16 @@ const togglePurchased = (item: ShoppingListItem) => {
 
         <div
             v-if="totalCount === 0"
-            class="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500"
+            class="flex flex-col items-center gap-3 rounded-lg border border-dashed border-gray-300 p-12 text-center"
         >
-            This shopping list has no items yet.
+            <ClipboardList class="size-10 text-gray-300" />
+            <div>
+                <p class="font-medium text-gray-600">No items yet</p>
+                <p class="mt-1 text-sm text-gray-400">
+                    Items will appear here once they're added to this shopping
+                    list.
+                </p>
+            </div>
         </div>
     </div>
 </template>
