@@ -21,6 +21,7 @@ class MealPlanRecipeResource extends JsonResource
             'date' => $this->date?->toDateString() ?? $this->date,
             'meal_type' => $this->meal_type,
             'servings' => $this->servings,
+            'note' => $this->note,
             'recipe' => RecipeResource::make($this->whenLoaded('recipe')),
         ];
     }

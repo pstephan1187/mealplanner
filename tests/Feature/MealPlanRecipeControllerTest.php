@@ -81,3 +81,53 @@ it('deletes meal plan recipes and redirects to parent meal plan', function () {
 
     expect(MealPlanRecipe::query()->whereKey($mealPlanRecipe->id)->exists())->toBeFalse();
 });
+
+it('stores meal plan recipes with a note', function () {
+    $user = User::factory()->create();
+    $mealPlan = MealPlan::factory()->for($user)->create([
+        'start_date' => '2026-01-01',
+        'end_date' => '2026-01-07',
+    ]);
+    $recipe = Recipe::factory()->for($user)->create();
+
+    $response = $this->actingAs($user)->post(route('meal-plan-recipes.store'), [
+        'meal_plan_id' => $mealPlan->id,
+        'recipe_id' => $recipe->id,
+        'date' => '2026-01-02',
+        'meal_type' => 'Dinner',
+        'servings' => 2,
+        'note' => 'Make extra for tomorrow',
+    ]);
+
+    $response->assertRedirect(route('meal-plans.show', $mealPlan));
+
+    $mealPlanRecipe = MealPlanRecipe::query()->latest('id')->first();
+    expect($mealPlanRecipe->note)->toBe('Make extra for tomorrow');
+});
+
+it('updates meal plan recipe note', function () {
+    $user = User::factory()->create();
+    $mealPlan = MealPlan::factory()->for($user)->create([
+        'start_date' => '2026-01-01',
+        'end_date' => '2026-01-07',
+    ]);
+    $recipe = Recipe::factory()->for($user)->create();
+    $mealPlanRecipe = MealPlanRecipe::factory()
+        ->for($mealPlan)
+        ->for($recipe)
+        ->create([
+            'date' => '2026-01-02',
+            'meal_type' => 'Dinner',
+            'servings' => 2,
+            'note' => null,
+        ]);
+
+    $response = $this->actingAs($user)->patch(route('meal-plan-recipes.update', $mealPlanRecipe), [
+        'note' => 'Eating out tonight',
+    ]);
+
+    $response->assertRedirect(route('meal-plans.show', $mealPlan));
+
+    $mealPlanRecipe->refresh();
+    expect($mealPlanRecipe->note)->toBe('Eating out tonight');
+});

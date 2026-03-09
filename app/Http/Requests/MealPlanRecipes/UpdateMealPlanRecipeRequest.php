@@ -59,6 +59,7 @@ class UpdateMealPlanRecipeRequest extends FormRequest
             ],
             'meal_type' => ['sometimes', 'string', Rule::in(['Breakfast', 'Lunch', 'Dinner'])],
             'servings' => ['sometimes', 'integer', 'min:1'],
+            'note' => ['nullable', 'string', 'max:500'],
         ];
     }
 

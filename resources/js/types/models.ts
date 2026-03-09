@@ -116,6 +116,7 @@ export interface MealPlanRecipe {
     date: string;
     meal_type: string;
     servings: number;
+    note?: string | null;
     recipe?: Recipe | null;
 }
 

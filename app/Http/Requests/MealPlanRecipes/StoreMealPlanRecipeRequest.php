@@ -54,6 +54,7 @@ class StoreMealPlanRecipeRequest extends FormRequest
             ],
             'meal_type' => ['required', 'string', Rule::in(['Breakfast', 'Lunch', 'Dinner'])],
             'servings' => ['required', 'integer', 'min:1'],
+            'note' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

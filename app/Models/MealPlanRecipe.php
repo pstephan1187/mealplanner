@@ -20,6 +20,7 @@ class MealPlanRecipe extends Model
         'date',
         'meal_type',
         'servings',
+        'note',
     ];
 
     /**

@@ -65,6 +65,7 @@ class MealPlanRecipeController extends Controller
             'date' => $data['date'],
             'meal_type' => $data['meal_type'],
             'servings' => $data['servings'],
+            'note' => $data['note'] ?? null,
         ]);
 
         return redirect()->route('meal-plans.show', $mealPlan);

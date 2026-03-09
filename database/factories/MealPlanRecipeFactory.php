@@ -24,6 +24,7 @@ class MealPlanRecipeFactory extends Factory
             'date' => fake()->dateTimeBetween('now', '+1 month')->format('Y-m-d'),
             'meal_type' => fake()->randomElement(['Breakfast', 'Lunch', 'Dinner']),
             'servings' => fake()->numberBetween(1, 8),
+            'note' => null,
         ];
     }
 }
