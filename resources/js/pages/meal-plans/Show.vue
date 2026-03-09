@@ -83,6 +83,7 @@ const form = useForm({
     date: null as string | null,
     meal_type: null as string | null,
     servings: 1,
+    note: '' as string,
 });
 
 const shoppingListForm = useForm({
@@ -212,6 +213,7 @@ const openAssignment = (dateKey: string, mealType: string, label: string) => {
     form.meal_type = mealType;
     form.recipe_id = recipeOptions.value[0]?.id ?? null;
     form.servings = recipeOptions.value[0]?.servings ?? 1;
+    form.note = '';
     activeSlot.value = { dateKey, mealType, label };
     assignmentDialogOpen.value = true;
 };
@@ -230,6 +232,7 @@ const openEditAssignment = (
     form.meal_type = mealType;
     form.recipe_id = meal.recipe?.id ?? meal.recipe_id ?? null;
     form.servings = meal.servings;
+    form.note = meal.note ?? '';
     activeSlot.value = { dateKey, mealType, label };
     assignmentDialogOpen.value = true;
 };
@@ -404,6 +407,12 @@ const createShoppingListFromPlan = () => {
                                             >
                                                 Servings: {{ meal.servings }}
                                             </p>
+                                            <p
+                                                v-if="meal.note"
+                                                class="text-xs text-muted-foreground italic"
+                                            >
+                                                {{ meal.note }}
+                                            </p>
                                         </button>
                                     </div>
                                 </div>
@@ -511,6 +520,18 @@ const createShoppingListFromPlan = () => {
                             v-model="form.servings"
                         />
                         <InputError :message="form.errors.servings" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="note">Note</Label>
+                        <Input
+                            id="note"
+                            name="note"
+                            v-model="form.note"
+                            placeholder="e.g., eating out, leftovers, make extra..."
+                            maxlength="500"
+                        />
+                        <InputError :message="form.errors.note" />
                     </div>
 
                     <InputError :message="form.errors.date" />
