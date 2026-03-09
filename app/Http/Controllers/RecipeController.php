@@ -36,11 +36,18 @@ class RecipeController extends Controller
             ->currentUser()
             ->with('ingredients')
             ->withCount('sections')
+            ->when($request->query('search'), function ($query, $search) {
+                $query->where('name', 'like', '%'.$search.'%');
+            })
             ->latest()
-            ->paginate();
+            ->paginate()
+            ->withQueryString();
 
         return Inertia::render('recipes/Index', [
             'recipes' => RecipeResource::collection($recipes),
+            'filters' => [
+                'search' => $request->query('search', ''),
+            ],
         ]);
     }
 
