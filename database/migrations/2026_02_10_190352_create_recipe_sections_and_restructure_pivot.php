@@ -26,6 +26,14 @@ return new class extends Migration
         // SQLite-safe pivot restructure: rename → create → copy → drop
         Schema::rename('ingredient_recipe', 'ingredient_recipe_old');
 
+        // Drop foreign keys on renamed table to avoid duplicate constraint names in MySQL
+        if (DB::getDriverName() !== 'sqlite') {
+            Schema::table('ingredient_recipe_old', function (Blueprint $table) {
+                $table->dropForeign(['recipe_id']);
+                $table->dropForeign(['ingredient_id']);
+            });
+        }
+
         Schema::create('ingredient_recipe', function (Blueprint $table) {
             $table->id();
             $table->foreignId('recipe_id')->constrained()->cascadeOnDelete();
