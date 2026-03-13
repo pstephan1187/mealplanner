@@ -18,7 +18,7 @@ return new class extends Migration
             $table->longText('instructions');
             $table->unsignedInteger('servings')->default(1);
             $table->string('flavor_profile');
-            $table->json('meal_types')->default(json_encode([]));
+            $table->json('meal_types')->nullable();
             $table->string('photo_path')->nullable();
             $table->unsignedInteger('prep_time_minutes')->nullable();
             $table->unsignedInteger('cook_time_minutes')->nullable();
