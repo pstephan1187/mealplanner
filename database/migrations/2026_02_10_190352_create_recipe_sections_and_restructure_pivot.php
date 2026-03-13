@@ -29,8 +29,8 @@ return new class extends Migration
         // Drop foreign keys on renamed table to avoid duplicate constraint names in MySQL
         if (DB::getDriverName() !== 'sqlite') {
             Schema::table('ingredient_recipe_old', function (Blueprint $table) {
-                $table->dropForeign(['recipe_id']);
-                $table->dropForeign(['ingredient_id']);
+                $table->dropForeign('ingredient_recipe_recipe_id_foreign');
+                $table->dropForeign('ingredient_recipe_ingredient_id_foreign');
             });
         }
 
