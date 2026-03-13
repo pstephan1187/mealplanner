@@ -1,0 +1,27 @@
+{
+    "name": "MandyList",
+    "short_name": "MandyList",
+    "description": "Meal planning and shopping lists",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#fceef0",
+    "theme_color": "#b51d3e",
+    "icons": [
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

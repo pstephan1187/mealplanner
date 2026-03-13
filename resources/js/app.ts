@@ -28,3 +28,8 @@ createInertiaApp({
 
 // This will set light / dark mode on page load...
 initializeTheme();
+
+// Register service worker for PWA installability...
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+}
